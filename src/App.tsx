@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import {
-  Mic, Camera, Search, Plus, Baby, ShoppingCart, X, TrendingUp, MapPin, Calendar, Gift, Loader2
+  Mic, Camera, Search, Plus, Baby, ShoppingCart, X, TrendingUp, Loader2, MapPin, Calendar, Gift
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -31,7 +31,6 @@ export default function App() {
     setLoading(false);
   }
 
-  // FUNÇÃO DE COMPRESSÃO DE IMAGEM
   const comprimirImagem = (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -41,18 +40,13 @@ export default function App() {
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800; // Resolução suficiente para celular
+          const MAX_WIDTH = 800;
           const scaleSize = MAX_WIDTH / img.width;
           canvas.width = MAX_WIDTH;
           canvas.height = img.height * scaleSize;
-
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-          
-          // Converte para JPEG com 70% de qualidade
-          ctx?.canvas.toBlob((blob) => {
-            resolve(blob as Blob);
-          }, 'image/jpeg', 0.7);
+          ctx?.canvas.toBlob((blob) => resolve(blob as Blob), 'image/jpeg', 0.7);
         };
       };
     });
@@ -62,38 +56,23 @@ export default function App() {
     try {
       if (!e.target.files || e.target.files.length === 0 || !editando) return;
       setUploading(true);
-
       const arquivoOriginal = e.target.files[0];
-      
-      // Aplica a compressão antes do upload
       const fotoComprimida = await comprimirImagem(arquivoOriginal);
-
       const fileName = `${editando.id}-${Date.now()}.jpg`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('fotos-enxoval')
-        .upload(fileName, fotoComprimida, { contentType: 'image/jpeg' });
-
+      const { error: uploadError } = await supabase.storage.from('fotos-enxoval').upload(fileName, fotoComprimida);
       if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('fotos-enxoval')
-        .getPublicUrl(fileName);
-
-      const { error: updateError } = await supabase
-        .from('enxoval')
-        .update({ foto_url: publicUrl })
-        .eq('id', editando.id);
-
+      const { data: { publicUrl } } = supabase.storage.from('fotos-enxoval').getPublicUrl(fileName);
+      const { error: updateError } = await supabase.from('enxoval').update({ foto_url: publicUrl }).eq('id', editando.id);
       if (updateError) throw updateError;
-
       setEditando({ ...editando, foto_url: publicUrl });
       fetchEnxoval();
-    } catch (error: any) {
-      alert('Erro no upload: ' + error.message);
-    } finally {
-      setUploading(false);
-    }
+    } catch (error: any) { alert(error.message); } finally { setUploading(false); }
+  }
+
+  async function adicionarItem() {
+    if (!novoItemNome.trim()) return;
+    const { error } = await supabase.from('enxoval').insert([{ item_nome: novoItemNome, categoria: 'Outros', interesse: 'Ativo', status: 'Pendente' }]);
+    if (!error) { setNovoItemNome(''); setMostrarModal(false); fetchEnxoval(); }
   }
 
   async function salvarEdicao(e: React.FormEvent) {
@@ -104,14 +83,6 @@ export default function App() {
       data_compra: editando.data_compra, condicao: editando.condicao, status: editando.status, categoria: editando.categoria
     }).eq('id', editando.id);
     if (!error) { setEditando(null); fetchEnxoval(); }
-  }
-
-  async function adicionarItem() {
-    if (!novoItemNome.trim()) return;
-    const { error } = await supabase.from('enxoval').insert([{ 
-      item_nome: novoItemNome, categoria: 'Outros', interesse: 'Ativo', status: 'Pendente' 
-    }]);
-    if (!error) { setNovoItemNome(''); setMostrarModal(false); fetchEnxoval(); }
   }
 
   const totalGasto = itens.filter(i => i.status === 'Comprado').reduce((acc, i) => acc + Number(i.preco_pago || 0), 0);
@@ -173,11 +144,17 @@ export default function App() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
-                    <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-wider">{item.categoria}</span>
+                    <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-wider truncate">{item.categoria}</span>
                     {item.condicao && <span className={`text-[7px] px-1 rounded font-bold text-white uppercase ${item.condicao === 'Novo' ? 'bg-blue-400' : 'bg-orange-400'}`}>{item.condicao}</span>}
                   </div>
                   <h3 className="font-bold text-slate-800 text-sm truncate leading-tight">{item.item_nome}</h3>
-                  <p className="text-[10px] text-slate-400 truncate">{item.marca || 'Toque para detalhes'}</p>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                    {item.marca && <span className="text-[9px] text-slate-500">{item.marca}</span>}
+                    {item.status === 'Comprado' && <span className="text-[9px] font-black text-indigo-600">R$ {Number(item.preco_pago).toFixed(2)}</span>}
+                    {item.status === 'Presente' && <Gift size={10} className="text-pink-400" />}
+                    {item.local_compra && <span className="text-[9px] text-slate-400 flex items-center gap-0.5"><MapPin size={8}/>{item.local_compra}</span>}
+                    {item.data_compra && <span className="text-[9px] text-slate-400 flex items-center gap-0.5"><Calendar size={8}/>{item.data_compra}</span>}
+                  </div>
                 </div>
               </div>
             </div>
@@ -194,11 +171,7 @@ export default function App() {
       {editando && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-end">
           <form onSubmit={salvarEdicao} className="bg-white w-full rounded-t-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h2 className="text-xs font-black text-indigo-600 uppercase">{editando.item_nome}</h2>
-              <button type="button" onClick={() => setEditando(null)}><X size={20}/></button>
-            </div>
-            
+            <div className="flex justify-between items-center border-b pb-2"><h2 className="text-sm font-black text-slate-800 uppercase">{editando.item_nome}</h2><button type="button" onClick={() => setEditando(null)}><X size={20}/></button></div>
             <div className="flex justify-center">
               <div className="relative h-24 w-24 rounded-xl bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden">
                 {editando.foto_url ? <img src={editando.foto_url} className="h-full w-full object-cover" /> : <Camera size={24} className="text-slate-300" />}
@@ -208,7 +181,6 @@ export default function App() {
                 </label>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <input className="bg-slate-100 p-3 rounded-xl text-xs outline-none" placeholder="Marca" value={editando.marca || ''} onChange={e => setEditando({...editando, marca: e.target.value})} />
               <input type="number" step="0.01" className="bg-slate-100 p-3 rounded-xl text-xs font-bold text-indigo-600" placeholder="Preço" value={editando.preco_pago || ''} onChange={e => setEditando({...editando, preco_pago: e.target.value})} />
