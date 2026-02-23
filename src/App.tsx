@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import {
-  Mic, Camera, Search, Plus, Baby, ShoppingCart, X, TrendingUp, Loader2, MapPin, Calendar, Gift
+  Mic, Camera, Search, Plus, Baby, ShoppingCart, X, TrendingUp, Loader2
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -88,7 +88,7 @@ export default function App() {
   const totalGasto = itens.filter(i => i.status === 'Comprado').reduce((acc, i) => acc + Number(i.preco_pago || 0), 0);
 
   const escutarVoz = (callback: (texto: string) => void) => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitRecognition;
     if (!SpeechRecognition) return;
     const recognition = new SpeechRecognition();
     recognition.lang = 'pt-BR';
@@ -145,15 +145,12 @@ export default function App() {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
                     <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-wider truncate">{item.categoria}</span>
-                    {item.condicao && <span className={`text-[7px] px-1 rounded font-bold text-white uppercase ${item.condicao === 'Novo' ? 'bg-blue-400' : 'bg-orange-400'}`}>{item.condicao}</span>}
+                    {item.condicao && <span className="text-[7px] px-1 rounded font-bold text-white uppercase bg-blue-400">{item.condicao}</span>}
                   </div>
                   <h3 className="font-bold text-slate-800 text-sm truncate leading-tight">{item.item_nome}</h3>
                   <div className="flex flex-wrap items-center gap-1.5 mt-1">
                     {item.marca && <span className="text-[9px] text-slate-500">{item.marca}</span>}
                     {item.status === 'Comprado' && <span className="text-[9px] font-black text-indigo-600">R$ {Number(item.preco_pago).toFixed(2)}</span>}
-                    {item.status === 'Presente' && <Gift size={10} className="text-pink-400" />}
-                    {item.local_compra && <span className="text-[9px] text-slate-400 flex items-center gap-0.5"><MapPin size={8}/>{item.local_compra}</span>}
-                    {item.data_compra && <span className="text-[9px] text-slate-400 flex items-center gap-0.5"><Calendar size={8}/>{item.data_compra}</span>}
                   </div>
                 </div>
               </div>
