@@ -249,5 +249,42 @@ export default function App() {
 
               {editando.status === 'Presente' && (
                 <div className="space-y-1.5 text-left animate-in zoom-in-95 duration-200">
-                  <label className="text-[10px] font-black text-pink-600 uppercase ml-1">Quem presenteou o bebê?</label>
-                  <input className="w-full bg-pink
+                  <label className="text-[10px] font-black text-pink-600 uppercase ml-1">Quem presenteou o JURANDIR?</label>
+                  <input className="w-full bg-pink-50 p-4 rounded-2xl text-sm font-bold text-pink-700 outline-none border-2 border-pink-100 placeholder:text-pink-300" placeholder="Ex: Titia Amanda" value={editando.quem_presenteou || ''} onChange={e => setEditando({...editando, quem_presenteou: e.target.value})} />
+                </div>
+              )}
+            </div>
+
+            {/* BOTÃO SALVAR FIXO (INDISPENSÁVEL) */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-md border-t border-slate-100">
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="animate-spin" size={20} /> : "SALVAR ALTERAÇÕES"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL ADICIONAR (MESMA LÓGICA DE SCROLL) */}
+      {mostrarModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0">
+          <div className="bg-white w-full max-w-md rounded-t-[2.5rem] sm:rounded-3xl p-8 shadow-2xl animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-base font-black text-slate-900 uppercase tracking-tight">Novo Item</h2>
+              <button onClick={() => setMostrarModal(false)} className="p-2 bg-slate-100 rounded-full text-slate-500"><X size={20}/></button>
+            </div>
+            <div className="flex gap-3 mb-8">
+              <input autoFocus className="flex-1 bg-slate-100 p-4 rounded-2xl outline-none text-base font-bold border-2 border-transparent focus:border-indigo-500 transition-all shadow-inner" placeholder="Nome do item..." value={novoItemNome} onChange={e => setNovoItemNome(e.target.value)} />
+              <button onClick={() => escutarVoz(setNovoItemNome)} className="bg-indigo-50 text-indigo-600 p-4 rounded-2xl active:bg-indigo-100"><Mic size={24}/></button>
+            </div>
+            <button onClick={adicionarItem} className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl text-base shadow-lg shadow-indigo-100 uppercase tracking-widest active:scale-95 transition-all">ADICIONAR</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
