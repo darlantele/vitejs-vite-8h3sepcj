@@ -179,13 +179,15 @@ export default function App() {
         <Baby size={24} className="text-slate-300" />
       </nav>
 
+      {/* MODAL DE EDIÇÃO COM CORREÇÃO DE POSICIONAMENTO SUPERIOR */}
       {editando && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center overflow-hidden">
-          <form onSubmit={salvarEdicao} className="bg-white w-full max-w-md rounded-t-[2.5rem] flex flex-col max-h-[92vh] shadow-2xl animate-in slide-in-from-bottom duration-300">
+          {/* MARGEM DE SEGURANÇA NO TOPO (mt-12) PARA O "X" NÃO SUMIR */}
+          <form onSubmit={salvarEdicao} className="bg-white w-full max-w-md rounded-t-[2.5rem] flex flex-col mt-12 max-h-[calc(100vh-3rem)] shadow-2xl animate-in slide-in-from-bottom duration-300">
             
             <div className="flex justify-between items-center p-6 border-b border-slate-100 shrink-0">
               <h2 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] truncate pr-4">{editando.item_nome}</h2>
-              <button type="button" onClick={() => setEditando(null)} className="p-2 bg-slate-100 rounded-full text-slate-500"><X size={20}/></button>
+              <button type="button" onClick={() => setEditando(null)} className="p-2 bg-slate-100 rounded-full text-slate-500 active:bg-slate-200"><X size={20}/></button>
             </div>
             
             <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-40">
@@ -199,7 +201,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* STATUS SELECTOR - IMPORTANTE PARA A LOGICA DINAMICA */}
               <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl shadow-inner">
                 {['Pendente', 'Comprado', 'Presente'].map(s => (
                   <button key={s} type="button" onClick={() => setEditando({...editando, status: s as any})} className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${editando.status === s ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500'}`}>
@@ -208,22 +209,21 @@ export default function App() {
                 ))}
               </div>
 
-              {/* CAMPOS CONDICIONAIS: ESCONDER SE FOR PRESENTE */}
               {editando.status !== 'Presente' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 text-left">
                       <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Marca</label>
                       <input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none border-2 border-transparent focus:border-indigo-400" value={editando.marca || ''} onChange={e => setEditando({...editando, marca: e.target.value})} />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 text-left">
                       <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Preço (R$)</label>
                       <input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-700 outline-none" value={editando.preco_pago || ''} onChange={e => setEditando({...editando, preco_pago: e.target.value})} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 text-left">
                       <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Loja / Local</label>
                       <input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={editando.local_compra || ''} onChange={e => setEditando({...editando, local_compra: e.target.value})} />
                     </div>
@@ -234,23 +234,22 @@ export default function App() {
                 </div>
               )}
 
-              {/* CAMPOS COMUNS */}
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 text-left">
                     <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label>
-                    <select className="w-full bg-slate-100 p-4 rounded-2xl text-sm font-black appearance-none outline-none" value={editando.categoria || 'Outros'} onChange={e => setEditando({...editando, categoria: e.target.value})}>
+                    <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={editando.categoria || 'Outros'} onChange={e => setEditando({...editando, categoria: e.target.value})}>
                       {categorias.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 text-left">
                     <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data</label>
-                    <input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-sm font-bold outline-none" value={editando.data_compra || ''} onChange={e => setEditando({...editando, data_compra: e.target.value})} />
+                    <input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={editando.data_compra || ''} onChange={e => setEditando({...editando, data_compra: e.target.value})} />
                   </div>
                 </div>
 
                 {editando.status === 'Presente' && (
-                  <div className="space-y-1.5 animate-in zoom-in-95 duration-200">
+                  <div className="space-y-1.5 text-left animate-in zoom-in-95 duration-200">
                     <label className="text-[10px] font-black text-pink-600 uppercase ml-1">Quem presenteou o bebê?</label>
                     <input className="w-full bg-pink-50 p-4 rounded-2xl text-base font-bold text-pink-700 outline-none border-2 border-pink-100 placeholder:text-pink-300" placeholder="Ex: Titia Amanda" value={editando.quem_presenteou || ''} onChange={e => setEditando({...editando, quem_presenteou: e.target.value})} />
                   </div>
@@ -268,8 +267,8 @@ export default function App() {
       )}
 
       {mostrarModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center p-0">
-          <div className="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-300 pb-12">
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center p-0 overflow-hidden">
+          <div className="bg-white w-full max-w-md rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-300 pb-12 mt-12">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-base font-black text-slate-900 uppercase">Novo Item</h2>
               <button onClick={() => setMostrarModal(false)} className="p-2 bg-slate-100 rounded-full text-slate-500"><X size={20}/></button>
