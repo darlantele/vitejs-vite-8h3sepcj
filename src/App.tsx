@@ -184,7 +184,7 @@ export default function App() {
             <select 
               value={categoriaFiltro} 
               onChange={(e) => setCategoriaFiltro(e.target.value)} 
-              className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 px-0 indent-0 rounded-xl appearance-none outline-none shadow-md h-full uppercase text-center"
+              className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 px-0 indent-0 text-center rounded-xl appearance-none outline-none shadow-md h-full uppercase"
             >
               <option value="Todas">TODAS</option>
               {listaCategorias.map(cat => <option key={cat.id} value={cat.nome}>{cat.nome.toUpperCase()}</option>)}
