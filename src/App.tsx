@@ -161,8 +161,8 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 w-full shadow-sm">
         <div className="flex justify-between items-center mb-3">
           <h1 onClick={() => window.location.reload()} className="text-[17px] font-black text-indigo-700 cursor-pointer select-none active:opacity-50 transition-opacity tracking-tight">
-            <span classname="leading-none">Jurandir Baby</span>
-            <div classname="flex gap-1 mt-1 text-sm leading-none">
+            <span className="leading-none">Jurandir Baby</span>
+            <div className="flex gap-1 mt-1 text-sm leading-none">
               <span>🍼</span>
               <span>👶</span>
               <span>🚗</span>
