@@ -22,7 +22,7 @@ export default function App() {
 
   const [novoItem, setNovoItem] = useState({
     item_nome: '',
-    categoria: 'Outros',
+    categoria_id: 'Outros',
     marca: '',
     preco_pago: '',
     local_compra: '',
@@ -83,7 +83,7 @@ export default function App() {
     setLoading(true);
     const { error } = await supabase.from('enxoval').insert([{
       item_nome: novoItem.item_nome,
-      categoria: novoItem.categoria,
+      categoria_id: novoItem.categoria_id,
       marca: novoItem.marca,
       preco_pago: novoItem.preco_pago || 0,
       local_compra: novoItem.local_compra,
@@ -94,7 +94,7 @@ export default function App() {
     }]);
     if (!error) {
       setMostrarModal(false);
-      setNovoItem({ item_nome: '', categoria: 'Outros', marca: '', preco_pago: '', local_compra: '', data_compra: new Date().toISOString().split('T')[0], foto_url: '', status: 'Pendente' });
+      setNovoItem({ item_nome: '', categoria_id: 'Outros', marca: '', preco_pago: '', local_compra: '', data_compra: new Date().toISOString().split('T')[0], foto_url: '', status: 'Pendente' });
       fetchEnxoval();
     } else { alert("Erro: " + error.message); }
     setLoading(false);
@@ -112,7 +112,7 @@ export default function App() {
       data_compra: editando.data_compra,
       condicao: editando.status === 'Presente' ? 'Novo' : editando.condicao,
       status: editando.status,
-      categoria: editando.categoria,
+      categoria_id: editando.categoria_id,
       quem_presenteou: editando.quem_presenteou,
       foto_url: editando.foto_url
     }).eq('id', editando.id);
@@ -141,7 +141,7 @@ export default function App() {
 
   const itensFiltrados = itens.filter(i => {
     const statusMatch = abaAtiva === 'Pendentes' ? i.status === 'Pendente' : (i.status === 'Comprado' || i.status === 'Presente');
-    const catMatch = categoriaAtiva === 'Todas' || i.categoria === categoriaAtiva;
+    const catMatch = categoriaAtiva === 'Todas' || i.categoria_id === categoriaAtiva;
     return (statusMatch && catMatch && (i.item_nome ?? '').toLowerCase().includes(busca.toLowerCase()));
   });
 
@@ -187,7 +187,7 @@ export default function App() {
               </div>
               <div onClick={() => setEditando(item)} className="flex-1 min-w-0">
                 <div className="flex justify-between items-start mb-1">
-                  <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{item.categoria}</span>
+                  <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{item.categoria_id}</span>
                   {item.condicao && <span className="text-[8px] px-1.5 py-0.5 rounded-full font-black text-white uppercase bg-indigo-600 shadow-sm">{item.condicao}</span>}
                 </div>
                 <h3 className="font-bold text-slate-900 text-[16px] truncate leading-tight">{item.item_nome}</h3>
@@ -243,7 +243,7 @@ export default function App() {
                   <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Loja / Local</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.local_compra} onChange={e => setNovoItem({...novoItem, local_compra: e.target.value})} /></div>
                   <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data</label><input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.data_compra} onChange={e => setNovoItem({...novoItem, data_compra: e.target.value})} /></div>
                 </div>
-                <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label><select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={novoItem.categoria} onChange={e => setNovoItem({...novoItem, categoria: e.target.value})}>{categorias.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label><select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>{categorias.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}</select></div>
               </div>
             </div>
             <div className="p-6 bg-white border-t shrink-0 pb-12 shadow-inner">
@@ -286,11 +286,11 @@ export default function App() {
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label><select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={editando.categoria || 'Outros'} onChange={e => setEditando({...editando, categoria: e.target.value})}>{categorias.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label><select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={editando.categoria_id || 'Outros'} onChange={e => setEditando({...editando, categoria_id: e.target.value})}>{categorias.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                   <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data</label><input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={editando.data_compra || ''} onChange={e => setEditando({...editando, data_compra: e.target.value})} /></div>
                 </div>
                 {editando.status === 'Presente' && (
-                  <div className="space-y-1.5 text-left animate-in zoom-in-95"><label className="text-[10px] font-black text-pink-600 uppercase ml-1 tracking-widest">Quem presenteou?</label><input className="w-full bg-pink-50 p-5 rounded-2xl text-base font-bold text-pink-700 outline-none border-2 border-pink-100 placeholder:text-pink-300" placeholder="Ex: Titia Amanda" value={editando.quem_presenteou || ''} onChange={e => setEditando({...editando, quem_presenteou: e.target.value})} /></div>
+                  <div className="space-y-1.5 text-left animate-in zoom-in-95"><label className="text-[10px] font-black text-pink-600 uppercase ml-1 tracking-widest">Quem presenteou o Juras?</label><input className="w-full bg-pink-50 p-5 rounded-2xl text-base font-bold text-pink-700 outline-none border-2 border-pink-100 placeholder:text-pink-300" placeholder="Ex: Titia Amanda" value={editando.quem_presenteou || ''} onChange={e => setEditando({...editando, quem_presenteou: e.target.value})} /></div>
                 )}
               </div>
             </div>
