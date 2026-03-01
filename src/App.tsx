@@ -161,7 +161,7 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 w-full shadow-sm">
         <div className="flex justify-between items-center mb-3">
           <h1 onClick={() => window.location.reload()} className="text-[17px] font-black text-indigo-700 cursor-pointer select-none active:opacity-50 transition-opacity tracking-tight">
-            Jurandir Baby 🍼👶🧸
+            Jurandir Baby   🍼👶🧸
           </h1>
           <div className="flex items-center gap-2">
              <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
@@ -184,7 +184,7 @@ export default function App() {
             <select 
               value={categoriaFiltro} 
               onChange={(e) => setCategoriaFiltro(e.target.value)} 
-              className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 px-0 rounded-xl appearance-none outline-none shadow-md h-full uppercase text-center"
+              className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 px-0 indent-0 rounded-xl appearance-none outline-none shadow-md h-full uppercase text-center"
             >
               <option value="Todas">TODAS</option>
               {listaCategorias.map(cat => <option key={cat.id} value={cat.nome}>{cat.nome.toUpperCase()}</option>)}
@@ -319,7 +319,7 @@ export default function App() {
                 </div>
                 {editando.status === 'Presente' && (
                   <div className="space-y-1.5 text-left animate-in zoom-in-95 duration-200">
-                    <label className="text-[10px] font-black text-pink-700 uppercase ml-1 tracking-widest">Quem presenteou?</label>
+                    <label className="text-[10px] font-black text-pink-700 uppercase ml-1 tracking-widest">Quem presenteou o Juras?</label>
                     <input className="w-full bg-pink-50 p-5 rounded-2xl text-base font-black text-pink-900 outline-none border-2 border-pink-200 placeholder:text-pink-300 shadow-sm" placeholder="Ex: Titia Amanda" value={editando.quem_presenteou || ''} onChange={e => setEditando({...editando, quem_presenteou: e.target.value})} />
                   </div>
                 )}
