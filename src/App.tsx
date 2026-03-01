@@ -161,8 +161,14 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 w-full shadow-sm">
         <div className="flex justify-between items-center mb-3">
           <h1 onClick={() => window.location.reload()} className="text-[17px] font-black text-indigo-700 cursor-pointer select-none active:opacity-50 transition-opacity tracking-tight">
-            Jurandir Baby   🍼👶🧸
+            <span classname="leading-none">Jurandir Baby</span>
+            <div classname="flex gap-1 mt-1 text-sm leading-none">
+              <span>🍼</span>
+              <span>👶</span>
+              <span>🚗</span>
+            </div>
           </h1>
+          
           <div className="flex items-center gap-2">
              <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
                 <button onClick={() => setAbaAtiva('Pendentes')} className={`px-2 py-1 rounded-md text-[9px] font-bold ${abaAtiva === 'Pendentes' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500'}`}>FALTAM</button>
@@ -184,7 +190,7 @@ export default function App() {
             <select 
               value={categoriaFiltro} 
               onChange={(e) => setCategoriaFiltro(e.target.value)} 
-              className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 px-0 indent-0 text-center rounded-xl appearance-none outline-none shadow-md h-full uppercase"
+              className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 rounded-xl appearance-none outline-none shadow-md h-full uppercase text-center flex items-center justify-center px-0 m-0 border-none"
             >
               <option value="Todas">TODAS</option>
               {listaCategorias.map(cat => <option key={cat.id} value={cat.nome}>{cat.nome.toUpperCase()}</option>)}
