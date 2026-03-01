@@ -79,7 +79,7 @@ export default function App() {
   }
 
   async function adicionarAoEnxoval() {
-    if (!novoItem.item_nome.trim()) { alert("Por favor, digite o nome do item."); return; }
+    if (!novoItem.item_nome.trim()) { alert("Digite o nome do item."); return; }
     setLoading(true);
     const { error } = await supabase.from('enxoval').insert([{
       item_nome: novoItem.item_nome,
@@ -122,7 +122,7 @@ export default function App() {
 
   async function excluirItem() {
     if (!editando) return;
-    if (confirm(`Deseja realmente excluir "${editando.item_nome}"?`)) {
+    if (confirm(`Excluir "${editando.item_nome}"?`)) {
       const { error } = await supabase.from('enxoval').delete().eq('id', editando.id);
       if (!error) { setEditando(null); fetchEnxoval(); }
     }
@@ -149,10 +149,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 w-full flex flex-col overflow-hidden">
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 w-full shadow-sm">
         <div className="flex justify-between items-center mb-3">
-          <h1 
-            onClick={() => window.location.reload()} 
-            className="text-lg font-black text-indigo-600 leading-none cursor-pointer active:opacity-50 transition-opacity select-none"
-          >
+          <h1 onClick={() => window.location.reload()} className="text-lg font-black text-indigo-600 cursor-pointer select-none active:opacity-50 transition-opacity">
             Jurandir Baby 🍼
           </h1>
           <div className="flex items-center gap-2">
@@ -169,7 +166,7 @@ export default function App() {
         <div className="grid grid-cols-12 gap-2">
           <div className="col-span-8 relative">
             <Search className="absolute left-3 top-3.5 h-3.5 w-3.5 text-slate-500" />
-            <input className="w-full rounded-xl bg-slate-100 py-3 pl-9 pr-10 text-base font-bold outline-none" placeholder="Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
+            <input className="w-full rounded-xl bg-slate-100 py-3 pl-9 pr-10 text-base font-bold outline-none border-2 border-transparent focus:border-indigo-500" placeholder="Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
             {busca && <button onClick={() => setBusca('')} className="absolute right-3 top-3.5 text-slate-400"><X size={16}/></button>}
           </div>
           <div className="col-span-4 relative">
@@ -226,7 +223,7 @@ export default function App() {
                   {novoItem.foto_url ? <img src={novoItem.foto_url} className="h-full w-full object-cover" /> : <Camera size={32} className="text-slate-200" />}
                   <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/10 opacity-0 active:opacity-100">
                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadFoto(e, true)} />
-                    <Plus className="text-white" size={40} />
+                    {uploading ? <Loader2 className="animate-spin text-white" size={32} /> : <Plus className="text-white" size={40} />}
                   </label>
                 </div>
               </div>
@@ -246,16 +243,11 @@ export default function App() {
                   <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Loja / Local</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.local_compra} onChange={e => setNovoItem({...novoItem, local_compra: e.target.value})} /></div>
                   <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data</label><input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.data_compra} onChange={e => setNovoItem({...novoItem, data_compra: e.target.value})} /></div>
                 </div>
-                <div className="space-y-1.5 text-left">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label>
-                  <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={novoItem.categoria} onChange={e => setNovoItem({...novoItem, categoria: e.target.value})}>
-                    {categorias.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
+                <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label><select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={novoItem.categoria} onChange={e => setNovoItem({...novoItem, categoria: e.target.value})}>{categorias.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}</select></div>
               </div>
             </div>
             <div className="p-6 bg-white border-t shrink-0 pb-12 shadow-inner">
-              <button onClick={adicionarAoEnxoval} disabled={loading} className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95 transition-all uppercase tracking-widest">
+              <button onClick={adicionarAoEnxoval} disabled={loading} className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95 transition-all">
                 {loading ? <Loader2 className="animate-spin mx-auto" size={24} /> : "ADICIONAR AO ENXOVAL"}
               </button>
             </div>
@@ -276,7 +268,7 @@ export default function App() {
                   {editando.foto_url ? <img src={editando.foto_url} className="h-full w-full object-cover" /> : <Camera size={36} className="text-slate-200" />}
                   <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/20 opacity-0 active:opacity-100 transition-opacity">
                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleUploadFoto} />
-                    <Plus className="text-white" size={48} />
+                    {uploading ? <Loader2 className="animate-spin text-white" size={32} /> : <Plus className="text-white" size={48} />}
                   </label>
                 </div>
                 {editando.foto_url && <button type="button" onClick={() => setEditando({...editando, foto_url: null})} className="text-red-500 font-bold text-xs uppercase bg-red-50 px-4 py-2 rounded-full"><Trash2 size={12} className="inline mr-1"/> Excluir Foto</button>}
