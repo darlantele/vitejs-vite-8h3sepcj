@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import {
-  Mic, Camera, Search, Plus, Baby, ShoppingCart, X, Loader2, ChevronDown, Heart, Trash2
+  Mic, Camera, Search, Plus, Baby, ShoppingCart, X, Loader2, Heart, Trash2
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -305,7 +305,7 @@ export default function App() {
                     <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Preço (R$)</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-900 outline-none shadow-sm" value={editando.preco_pago || ''} onChange={e => setEditando({...editando, preco_pago: e.target.value})} /></div>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 text-left">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Categoria</label>
                     <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none shadow-sm" value={editando.categoria_id} onChange={e => setEditando({...editando, categoria_id: e.target.value})}>
@@ -318,7 +318,7 @@ export default function App() {
                   </div>
                 </div>
                 {editando.status === 'Presente' && (
-                  <div className="space-y-1.5 animate-in zoom-in-95 duration-200">
+                  <div className="space-y-1.5 text-left animate-in zoom-in-95 duration-200">
                     <label className="text-[10px] font-black text-pink-700 uppercase ml-1 tracking-widest">Quem presenteou?</label>
                     <input className="w-full bg-pink-50 p-5 rounded-2xl text-base font-black text-pink-900 outline-none border-2 border-pink-200 placeholder:text-pink-300 shadow-sm" placeholder="Ex: Titia Amanda" value={editando.quem_presenteou || ''} onChange={e => setEditando({...editando, quem_presenteou: e.target.value})} />
                   </div>
