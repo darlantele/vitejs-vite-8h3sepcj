@@ -11,9 +11,10 @@ const supabase = createClient(
 
 export default function App() {
   const [itens, setItens] = useState<any[]>([]);
+  const [listaCategorias, setListaCategorias] = useState<any[]>([]);
   const [busca, setBusca] = useState('');
   const [abaAtiva, setAbaAtiva] = useState<'Pendentes' | 'Comprados'>('Pendentes');
-  const [categoriaAtiva, setCategoriaAtiva] = useState('Todas');
+  const [categoriaFiltro, setCategoriaFiltro] = useState('Todas');
   const [mostrarModal, setMostrarModal] = useState(false);
   const [editando, setEditando] = useState<any>(null);
   const [fotoZoom, setFotoZoom] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export default function App() {
 
   const [novoItem, setNovoItem] = useState({
     item_nome: '',
-    categoria_id: 'Outros',
+    categoria_id: '',
     marca: '',
     preco_pago: '',
     local_compra: '',
@@ -31,13 +32,26 @@ export default function App() {
     status: 'Pendente'
   });
 
-  const categorias = ['Todas', 'Utilidades', 'Móveis', 'Enxoval e Vestuário', 'Alimentação', 'Higiene', 'Mamãe', 'Brinquedos', 'Outros'];
+  useEffect(() => { 
+    fetchCategorias();
+    fetchEnxoval(); 
+  }, []);
 
-  useEffect(() => { fetchEnxoval(); }, []);
+  async function fetchCategorias() {
+    const { data } = await supabase.from('categorias').select('*').order('nome');
+    if (data) {
+      setListaCategorias(data);
+      if (data.length > 0) setNovoItem(prev => ({ ...prev, categoria_id: data[0].id }));
+    }
+  }
 
   async function fetchEnxoval() {
     setLoading(true);
-    const { data } = await supabase.from('enxoval').select('*').eq('interesse', 'Ativo').order('item_nome');
+    const { data } = await supabase
+      .from('enxoval')
+      .select(`*, categorias(nome)`)
+      .eq('interesse', 'Ativo')
+      .order('item_nome');
     if (data) setItens(data);
     setLoading(false);
   }
@@ -73,13 +87,13 @@ export default function App() {
       const { error: uploadError } = await supabase.storage.from('fotos-enxoval').upload(fileName, fotoComprimida);
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('fotos-enxoval').getPublicUrl(fileName);
-      if (isNovo) { setNovoItem({ ...novoItem, foto_url: publicUrl }); } 
-      else if (editando) { setEditando({ ...editando, foto_url: publicUrl }); }
+      if (isNovo) setNovoItem({ ...novoItem, foto_url: publicUrl });
+      else if (editando) setEditando({ ...editando, foto_url: publicUrl });
     } catch (error: any) { alert(error.message); } finally { setUploading(false); }
   }
 
   async function adicionarAoEnxoval() {
-    if (!novoItem.item_nome.trim()) { alert("Digite o nome do item."); return; }
+    if (!novoItem.item_nome.trim()) return;
     setLoading(true);
     const { error } = await supabase.from('enxoval').insert([{
       item_nome: novoItem.item_nome,
@@ -94,9 +108,9 @@ export default function App() {
     }]);
     if (!error) {
       setMostrarModal(false);
-      setNovoItem({ item_nome: '', categoria_id: 'Outros', marca: '', preco_pago: '', local_compra: '', data_compra: new Date().toISOString().split('T')[0], foto_url: '', status: 'Pendente' });
+      setNovoItem({ ...novoItem, item_nome: '', foto_url: '' });
       fetchEnxoval();
-    } else { alert("Erro: " + error.message); }
+    } else alert(error.message);
     setLoading(false);
   }
 
@@ -110,22 +124,19 @@ export default function App() {
       preco_pago: editando.status === 'Presente' ? 0 : editando.preco_pago,
       local_compra: editando.status === 'Presente' ? null : editando.local_compra,
       data_compra: editando.data_compra,
-      condicao: editando.status === 'Presente' ? 'Novo' : editando.condicao,
       status: editando.status,
       categoria_id: editando.categoria_id,
       quem_presenteou: editando.quem_presenteou,
       foto_url: editando.foto_url
     }).eq('id', editando.id);
-    if (!error) { setEditando(null); fetchEnxoval(); } else { alert("Erro: " + error.message); }
+    if (!error) { setEditando(null); fetchEnxoval(); } else alert(error.message);
     setLoading(false);
   }
 
   async function excluirItem() {
-    if (!editando) return;
-    if (confirm(`Excluir "${editando.item_nome}"?`)) {
-      const { error } = await supabase.from('enxoval').delete().eq('id', editando.id);
-      if (!error) { setEditando(null); fetchEnxoval(); }
-    }
+    if (!editando || !confirm(`Excluir "${editando.item_nome}"?`)) return;
+    const { error } = await supabase.from('enxoval').delete().eq('id', editando.id);
+    if (!error) { setEditando(null); fetchEnxoval(); }
   }
 
   const totalGasto = itens.filter(i => i.status === 'Comprado').reduce((acc, i) => acc + Number(i.preco_pago || 0), 0);
@@ -141,17 +152,15 @@ export default function App() {
 
   const itensFiltrados = itens.filter(i => {
     const statusMatch = abaAtiva === 'Pendentes' ? i.status === 'Pendente' : (i.status === 'Comprado' || i.status === 'Presente');
-    const catMatch = categoriaAtiva === 'Todas' || i.categoria_id === categoriaAtiva;
+    const catMatch = categoriaFiltro === 'Todas' || i.categorias?.nome === categoriaFiltro;
     return (statusMatch && catMatch && (i.item_nome ?? '').toLowerCase().includes(busca.toLowerCase()));
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 w-full flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 w-full flex flex-col overflow-x-hidden">
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 w-full shadow-sm">
         <div className="flex justify-between items-center mb-3">
-          <h1 onClick={() => window.location.reload()} className="text-lg font-black text-indigo-600 cursor-pointer select-none active:opacity-50 transition-opacity">
-            Jurandir Baby 🍼
-          </h1>
+          <h1 onClick={() => window.location.reload()} className="text-lg font-black text-indigo-600 cursor-pointer select-none">Jurandir Baby 🍼</h1>
           <div className="flex items-center gap-2">
              <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
                 <button onClick={() => setAbaAtiva('Pendentes')} className={`px-2 py-1 rounded-md text-[9px] font-bold ${abaAtiva === 'Pendentes' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>FALTAM</button>
@@ -170,8 +179,9 @@ export default function App() {
             {busca && <button onClick={() => setBusca('')} className="absolute right-3 top-3.5 text-slate-400"><X size={16}/></button>}
           </div>
           <div className="col-span-4 relative">
-            <select value={categoriaAtiva} onChange={(e) => setCategoriaAtiva(e.target.value)} className="w-full bg-indigo-600 text-white text-[10px] font-bold py-4 px-2 rounded-xl appearance-none outline-none shadow-sm h-full uppercase">
-              {categorias.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} className="w-full bg-indigo-600 text-white text-[10px] font-bold py-4 px-2 rounded-xl appearance-none outline-none shadow-sm h-full uppercase">
+              <option value="Todas">TODAS</option>
+              {listaCategorias.map(cat => <option key={cat.id} value={cat.nome}>{cat.nome.toUpperCase()}</option>)}
             </select>
             <ChevronDown className="absolute right-2 top-4.5 h-3 w-3 text-white pointer-events-none" />
           </div>
@@ -182,12 +192,12 @@ export default function App() {
         {itensFiltrados.map((item) => (
           <div key={item.id} className="bg-white rounded-2xl p-4 shadow-md border border-slate-100 flex flex-col gap-2">
             <div className="flex gap-4">
-              <div onClick={() => item.foto_url && setFotoZoom(item.foto_url)} className="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-inner cursor-zoom-in">
+              <div onClick={() => item.foto_url && setFotoZoom(item.foto_url)} className="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-inner cursor-zoom-in transition-transform active:scale-95">
                 {item.foto_url ? <img src={item.foto_url} className="h-full w-full object-cover" /> : <Camera size={24} className="text-slate-300" />}
               </div>
-              <div onClick={() => setEditando(item)} className="flex-1 min-w-0">
+              <div onClick={() => setEditando(item)} className="flex-1 min-w-0 text-left">
                 <div className="flex justify-between items-start mb-1">
-                  <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{item.categoria_id}</span>
+                  <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{item.categorias?.nome || 'Outros'}</span>
                   {item.condicao && <span className="text-[8px] px-1.5 py-0.5 rounded-full font-black text-white uppercase bg-indigo-600 shadow-sm">{item.condicao}</span>}
                 </div>
                 <h3 className="font-bold text-slate-900 text-[16px] truncate leading-tight">{item.item_nome}</h3>
@@ -205,8 +215,8 @@ export default function App() {
       </main>
 
       {fotoZoom && (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-6" onClick={() => setFotoZoom(null)}>
-          <img src={fotoZoom} className="max-w-full max-h-[80vh] rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300" />
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6 animate-in fade-in" onClick={() => setFotoZoom(null)}>
+          <img src={fotoZoom} className="max-w-full max-h-[85vh] rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300" />
         </div>
       )}
 
@@ -215,13 +225,13 @@ export default function App() {
           <div className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div className="flex justify-between items-center p-6 pt-10 border-b shrink-0">
               <h2 className="text-base font-black text-slate-900 uppercase">Novo Item</h2>
-              <button onClick={() => setMostrarModal(false)} className="p-3 bg-slate-100 rounded-full"><X size={24}/></button>
+              <button onClick={() => setMostrarModal(false)} className="p-3 bg-slate-100 rounded-full active:bg-slate-200"><X size={24}/></button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-40">
               <div className="flex justify-center">
-                <div className="relative h-32 w-32 rounded-[2rem] bg-slate-50 border-2 border-dashed flex items-center justify-center overflow-hidden shadow-inner">
+                <div className="relative h-32 w-32 rounded-[2.5rem] bg-slate-50 border-2 border-dashed flex items-center justify-center overflow-hidden shadow-inner">
                   {novoItem.foto_url ? <img src={novoItem.foto_url} className="h-full w-full object-cover" /> : <Camera size={32} className="text-slate-200" />}
-                  <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/10 opacity-0 active:opacity-100">
+                  <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/10 opacity-0 active:opacity-100 transition-opacity">
                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadFoto(e, true)} />
                     {uploading ? <Loader2 className="animate-spin text-white" size={32} /> : <Plus className="text-white" size={40} />}
                   </label>
@@ -231,8 +241,8 @@ export default function App() {
                 <div className="space-y-1.5 text-left">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Nome do Produto</label>
                   <div className="flex gap-2">
-                    <input className="flex-1 bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.item_nome} onChange={e => setNovoItem({...novoItem, item_nome: e.target.value})} />
-                    <button onClick={() => escutarVoz((t) => setNovoItem({...novoItem, item_nome: t}))} className="bg-indigo-50 text-indigo-600 p-4 rounded-2xl"><Mic size={24}/></button>
+                    <input className="flex-1 bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none focus:ring-2 focus:ring-indigo-500" value={novoItem.item_nome} onChange={e => setNovoItem({...novoItem, item_nome: e.target.value})} />
+                    <button onClick={() => escutarVoz((t) => setNovoItem({...novoItem, item_nome: t}))} className="bg-indigo-50 text-indigo-600 p-4 rounded-2xl active:bg-indigo-100"><Mic size={24}/></button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -243,7 +253,12 @@ export default function App() {
                   <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Loja / Local</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.local_compra} onChange={e => setNovoItem({...novoItem, local_compra: e.target.value})} /></div>
                   <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data</label><input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.data_compra} onChange={e => setNovoItem({...novoItem, data_compra: e.target.value})} /></div>
                 </div>
-                <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label><select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>{categorias.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div className="space-y-1.5 text-left">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label>
+                  <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none shadow-sm" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>
+                    {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
             <div className="p-6 bg-white border-t shrink-0 pb-12 shadow-inner">
@@ -259,8 +274,8 @@ export default function App() {
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-start justify-center overflow-hidden">
           <form onSubmit={salvarEdicao} className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div className="flex justify-between items-center p-6 pt-10 border-b shrink-0">
-              <input className="text-sm font-black text-indigo-600 uppercase tracking-widest bg-transparent outline-none pr-4 w-full" value={editando.item_nome} onChange={e => setEditando({...editando, item_nome: e.target.value})} />
-              <button type="button" onClick={() => setEditando(null)} className="p-2 bg-slate-100 rounded-full text-slate-500"><X size={24}/></button>
+              <input className="text-sm font-black text-indigo-600 uppercase tracking-widest bg-transparent outline-none w-full pr-4" value={editando.item_nome} onChange={e => setEditando({...editando, item_nome: e.target.value})} />
+              <button type="button" onClick={() => setEditando(null)} className="p-3 bg-slate-100 rounded-full active:bg-slate-200"><X size={24}/></button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-40">
               <div className="flex flex-col items-center gap-4">
@@ -271,26 +286,37 @@ export default function App() {
                     {uploading ? <Loader2 className="animate-spin text-white" size={32} /> : <Plus className="text-white" size={48} />}
                   </label>
                 </div>
-                {editando.foto_url && <button type="button" onClick={() => setEditando({...editando, foto_url: null})} className="text-red-500 font-bold text-xs uppercase bg-red-50 px-4 py-2 rounded-full"><Trash2 size={12} className="inline mr-1"/> Excluir Foto</button>}
+                {editando.foto_url && <button type="button" onClick={() => setEditando({...editando, foto_url: null})} className="text-red-500 font-bold text-xs uppercase bg-red-50 px-4 py-2 rounded-full active:bg-red-100"><Trash2 size={12} className="inline mr-1"/> Excluir Foto</button>}
               </div>
-              <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl shadow-inner">
+              <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl shadow-inner border border-slate-200">
                 {['Pendente', 'Comprado', 'Presente'].map(s => (
                   <button key={s} type="button" onClick={() => setEditando({...editando, status: s as any})} className={`flex-1 py-4 rounded-xl text-[10px] font-black transition-all ${editando.status === s ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500'}`}>{s.toUpperCase()}</button>
                 ))}
               </div>
               <div className="space-y-6">
                 {editando.status !== 'Presente' && (
-                  <div className="grid grid-cols-2 gap-4 animate-in fade-in">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={editando.marca || ''} onChange={e => setEditando({...editando, marca: e.target.value})} /></div>
                     <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Preço (R$)</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-700 outline-none" value={editando.preco_pago || ''} onChange={e => setEditando({...editando, preco_pago: e.target.value})} /></div>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label><select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={editando.categoria_id || 'Outros'} onChange={e => setEditando({...editando, categoria_id: e.target.value})}>{categorias.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data</label><input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={editando.data_compra || ''} onChange={e => setEditando({...editando, data_compra: e.target.value})} /></div>
+                <div className="grid grid-cols-2 gap-4 text-left">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label>
+                    <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none shadow-sm" value={editando.categoria_id} onChange={e => setEditando({...editando, categoria_id: e.target.value})}>
+                      {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data</label>
+                    <input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none shadow-sm" value={editando.data_compra || ''} onChange={e => setEditando({...editando, data_compra: e.target.value})} />
+                  </div>
                 </div>
                 {editando.status === 'Presente' && (
-                  <div className="space-y-1.5 text-left animate-in zoom-in-95"><label className="text-[10px] font-black text-pink-600 uppercase ml-1 tracking-widest">Quem presenteou o Juras?</label><input className="w-full bg-pink-50 p-5 rounded-2xl text-base font-bold text-pink-700 outline-none border-2 border-pink-100 placeholder:text-pink-300" placeholder="Ex: Titia Amanda" value={editando.quem_presenteou || ''} onChange={e => setEditando({...editando, quem_presenteou: e.target.value})} /></div>
+                  <div className="space-y-1.5 text-left animate-in zoom-in-95 duration-200">
+                    <label className="text-[10px] font-black text-pink-600 uppercase ml-1 tracking-widest">Quem presenteou?</label>
+                    <input className="w-full bg-pink-50 p-5 rounded-2xl text-base font-bold text-pink-700 outline-none border-2 border-pink-100 placeholder:text-pink-300 shadow-sm" placeholder="Ex: Titia Amanda" value={editando.quem_presenteou || ''} onChange={e => setEditando({...editando, quem_presenteou: e.target.value})} />
+                  </div>
                 )}
               </div>
             </div>
