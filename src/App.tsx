@@ -20,7 +20,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // ESTADO DO NOVO ITEM COMPLETO
   const [novoItem, setNovoItem] = useState({
     item_nome: '',
     categoria: 'Outros',
@@ -71,25 +70,16 @@ export default function App() {
       const arquivoOriginal = e.target.files[0];
       const fotoComprimida = await comprimirImagem(arquivoOriginal);
       const fileName = `foto-${Date.now()}.jpg`;
-      
       const { error: uploadError } = await supabase.storage.from('fotos-enxoval').upload(fileName, fotoComprimida);
       if (uploadError) throw uploadError;
-
       const { data: { publicUrl } } = supabase.storage.from('fotos-enxoval').getPublicUrl(fileName);
-
-      if (isNovo) {
-        setNovoItem({ ...novoItem, foto_url: publicUrl });
-      } else if (editando) {
-        setEditando({ ...editando, foto_url: publicUrl });
-      }
+      if (isNovo) { setNovoItem({ ...novoItem, foto_url: publicUrl }); } 
+      else if (editando) { setEditando({ ...editando, foto_url: publicUrl }); }
     } catch (error: any) { alert(error.message); } finally { setUploading(false); }
   }
 
   async function adicionarAoEnxoval() {
-    if (!novoItem.item_nome.trim()) {
-      alert("Por favor, digite o nome do item.");
-      return;
-    }
+    if (!novoItem.item_nome.trim()) { alert("Por favor, digite o nome do item."); return; }
     setLoading(true);
     const { error } = await supabase.from('enxoval').insert([{
       item_nome: novoItem.item_nome,
@@ -102,14 +92,11 @@ export default function App() {
       status: novoItem.status,
       interesse: 'Ativo'
     }]);
-
-    if (error) {
-      alert("Erro ao adicionar: " + error.message);
-    } else {
+    if (!error) {
       setMostrarModal(false);
       setNovoItem({ item_nome: '', categoria: 'Outros', marca: '', preco_pago: '', local_compra: '', data_compra: new Date().toISOString().split('T')[0], foto_url: '', status: 'Pendente' });
       fetchEnxoval();
-    }
+    } else { alert("Erro: " + error.message); }
     setLoading(false);
   }
 
@@ -129,9 +116,7 @@ export default function App() {
       quem_presenteou: editando.quem_presenteou,
       foto_url: editando.foto_url
     }).eq('id', editando.id);
-    
-    if (error) alert("Erro: " + error.message);
-    else { setEditando(null); fetchEnxoval(); }
+    if (!error) { setEditando(null); fetchEnxoval(); } else { alert("Erro: " + error.message); }
     setLoading(false);
   }
 
@@ -145,6 +130,15 @@ export default function App() {
 
   const totalGasto = itens.filter(i => i.status === 'Comprado').reduce((acc, i) => acc + Number(i.preco_pago || 0), 0);
 
+  const escutarVoz = (callback: (texto: string) => void) => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.onresult = (event: any) => { callback(event.results[0][0].transcript); recognition.stop(); };
+    recognition.start();
+  };
+
   const itensFiltrados = itens.filter(i => {
     const statusMatch = abaAtiva === 'Pendentes' ? i.status === 'Pendente' : (i.status === 'Comprado' || i.status === 'Presente');
     const catMatch = categoriaAtiva === 'Todas' || i.categoria === categoriaAtiva;
@@ -153,11 +147,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 w-full flex flex-col overflow-hidden">
-      
-      {/* HEADER */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 w-full shadow-sm">
         <div className="flex justify-between items-center mb-3">
-          <h1 onClick={() => window.location.reload()} className="text-lg font-black text-indigo-600 leading-none cursor-pointer active:opacity-50 transition-opacity">
+          <h1 
+            onClick={() => window.location.reload()} 
+            className="text-lg font-black text-indigo-600 leading-none cursor-pointer active:opacity-50 transition-opacity select-none"
+          >
             Jurandir Baby 🍼
           </h1>
           <div className="flex items-center gap-2">
@@ -174,7 +169,7 @@ export default function App() {
         <div className="grid grid-cols-12 gap-2">
           <div className="col-span-8 relative">
             <Search className="absolute left-3 top-3.5 h-3.5 w-3.5 text-slate-500" />
-            <input className="w-full rounded-xl bg-slate-100 py-3 pl-9 pr-10 text-base outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-900 font-bold" placeholder="Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
+            <input className="w-full rounded-xl bg-slate-100 py-3 pl-9 pr-10 text-base font-bold outline-none" placeholder="Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
             {busca && <button onClick={() => setBusca('')} className="absolute right-3 top-3.5 text-slate-400"><X size={16}/></button>}
           </div>
           <div className="col-span-4 relative">
@@ -186,7 +181,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* LISTAGEM */}
       <main className="flex-1 overflow-y-auto p-3 space-y-3 w-full pb-32">
         {itensFiltrados.map((item) => (
           <div key={item.id} className="bg-white rounded-2xl p-4 shadow-md border border-slate-100 flex flex-col gap-2">
@@ -202,7 +196,7 @@ export default function App() {
                 <h3 className="font-bold text-slate-900 text-[16px] truncate leading-tight">{item.item_nome}</h3>
                 <div className="mt-1">
                   {item.status === 'Presente' ? (
-                    <span className="text-[11px] font-bold text-pink-600 flex items-center gap-1 uppercase tracking-tighter italic"><Heart size={10} fill="currentColor"/> {item.quem_presenteou || 'Alguém especial'}</span>
+                    <span className="text-[11px] font-bold text-pink-600 flex items-center gap-1 uppercase italic tracking-tighter"><Heart size={10} fill="currentColor"/> {item.quem_presenteou || 'Alguém especial'}</span>
                   ) : (
                     <span className="text-[13px] font-black text-indigo-700">R$ {Number(item.preco_pago || 0).toFixed(2)}</span>
                   )}
@@ -213,14 +207,12 @@ export default function App() {
         ))}
       </main>
 
-      {/* ZOOM FOTO */}
       {fotoZoom && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-6" onClick={() => setFotoZoom(null)}>
           <img src={fotoZoom} className="max-w-full max-h-[80vh] rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300" />
         </div>
       )}
 
-      {/* MODAL NOVO ITEM (RESTAURADO E COMPLETO) */}
       {mostrarModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-start justify-center overflow-hidden">
           <div className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
@@ -241,27 +233,18 @@ export default function App() {
               <div className="space-y-4">
                 <div className="space-y-1.5 text-left">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Nome do Produto</label>
-                  <input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none border-2 border-transparent focus:border-indigo-500 transition-all" placeholder="Ex: Berço" value={novoItem.item_nome} onChange={e => setNovoItem({...novoItem, item_nome: e.target.value})} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5 text-left">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Marca</label>
-                    <input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.marca} onChange={e => setNovoItem({...novoItem, marca: e.target.value})} />
-                  </div>
-                  <div className="space-y-1.5 text-left">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Preço (R$)</label>
-                    <input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-700 outline-none" value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} />
+                  <div className="flex gap-2">
+                    <input className="flex-1 bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.item_nome} onChange={e => setNovoItem({...novoItem, item_nome: e.target.value})} />
+                    <button onClick={() => escutarVoz((t) => setNovoItem({...novoItem, item_nome: t}))} className="bg-indigo-50 text-indigo-600 p-4 rounded-2xl"><Mic size={24}/></button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5 text-left">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Loja / Local</label>
-                    <input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.local_compra} onChange={e => setNovoItem({...novoItem, local_compra: e.target.value})} />
-                  </div>
-                  <div className="space-y-1.5 text-left">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data</label>
-                    <input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.data_compra} onChange={e => setNovoItem({...novoItem, data_compra: e.target.value})} />
-                  </div>
+                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.marca} onChange={e => setNovoItem({...novoItem, marca: e.target.value})} /></div>
+                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Preço (R$)</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-700 outline-none" value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Loja / Local</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.local_compra} onChange={e => setNovoItem({...novoItem, local_compra: e.target.value})} /></div>
+                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data</label><input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={novoItem.data_compra} onChange={e => setNovoItem({...novoItem, data_compra: e.target.value})} /></div>
                 </div>
                 <div className="space-y-1.5 text-left">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label>
@@ -280,38 +263,32 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL EDIÇÃO (NOME EDITÁVEL E EXCLUSÃO) */}
       {editando && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-start justify-center overflow-hidden">
           <form onSubmit={salvarEdicao} className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div className="flex justify-between items-center p-6 pt-10 border-b shrink-0">
-              <input className="text-sm font-black text-indigo-600 uppercase tracking-widest bg-transparent outline-none focus:ring-1 focus:ring-indigo-100 rounded pr-4 w-full" value={editando.item_nome} onChange={e => setEditando({...editando, item_nome: e.target.value})} />
+              <input className="text-sm font-black text-indigo-600 uppercase tracking-widest bg-transparent outline-none pr-4 w-full" value={editando.item_nome} onChange={e => setEditando({...editando, item_nome: e.target.value})} />
               <button type="button" onClick={() => setEditando(null)} className="p-2 bg-slate-100 rounded-full text-slate-500"><X size={24}/></button>
             </div>
-            
             <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-40">
               <div className="flex flex-col items-center gap-4">
                 <div className="relative h-36 w-36 rounded-[2.5rem] bg-slate-50 border-2 border-dashed flex items-center justify-center overflow-hidden shadow-inner group">
                   {editando.foto_url ? <img src={editando.foto_url} className="h-full w-full object-cover" /> : <Camera size={36} className="text-slate-200" />}
                   <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/20 opacity-0 active:opacity-100 transition-opacity">
-                    <input type="file" accept="image/*" capture="environment" className="hidden" onDoubleClick={(e) => e.stopPropagation()} onChange={handleUploadFoto} />
+                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleUploadFoto} />
                     <Plus className="text-white" size={48} />
                   </label>
                 </div>
-                {editando.foto_url && (
-                  <button type="button" onClick={() => setEditando({...editando, foto_url: null})} className="text-red-500 font-bold text-xs uppercase tracking-tighter bg-red-50 px-4 py-2 rounded-full"><Trash2 size={12} className="inline mr-1"/> Excluir Foto</button>
-                )}
+                {editando.foto_url && <button type="button" onClick={() => setEditando({...editando, foto_url: null})} className="text-red-500 font-bold text-xs uppercase bg-red-50 px-4 py-2 rounded-full"><Trash2 size={12} className="inline mr-1"/> Excluir Foto</button>}
               </div>
-
               <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl shadow-inner">
                 {['Pendente', 'Comprado', 'Presente'].map(s => (
                   <button key={s} type="button" onClick={() => setEditando({...editando, status: s as any})} className={`flex-1 py-4 rounded-xl text-[10px] font-black transition-all ${editando.status === s ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500'}`}>{s.toUpperCase()}</button>
                 ))}
               </div>
-
               <div className="space-y-6">
                 {editando.status !== 'Presente' && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4 animate-in fade-in">
                     <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-bold outline-none" value={editando.marca || ''} onChange={e => setEditando({...editando, marca: e.target.value})} /></div>
                     <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Preço (R$)</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-700 outline-none" value={editando.preco_pago || ''} onChange={e => setEditando({...editando, preco_pago: e.target.value})} /></div>
                   </div>
@@ -325,12 +302,9 @@ export default function App() {
                 )}
               </div>
             </div>
-
             <div className="p-6 bg-white border-t shrink-0 pb-12 flex gap-4">
               <button type="button" onClick={excluirItem} className="bg-red-50 text-red-500 p-5 rounded-2xl active:bg-red-100"><Trash2 size={24}/></button>
-              <button type="submit" disabled={loading} className="flex-1 bg-indigo-600 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95 transition-all uppercase tracking-widest flex items-center justify-center gap-2">
-                {loading ? <Loader2 className="animate-spin" size={24} /> : "SALVAR ALTERAÇÕES"}
-              </button>
+              <button type="submit" disabled={loading} className="flex-1 bg-indigo-600 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95 transition-all uppercase tracking-widest flex items-center justify-center gap-2">{loading ? <Loader2 className="animate-spin" size={24} /> : "SALVAR ALTERAÇÕES"}</button>
             </div>
           </form>
         </div>
