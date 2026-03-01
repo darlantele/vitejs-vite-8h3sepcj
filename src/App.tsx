@@ -157,11 +157,11 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 w-full flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-900 w-full flex flex-col overflow-x-hidden">
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 w-full shadow-sm">
         <div className="flex justify-between items-center mb-3">
-          <h1 onClick={() => window.location.reload()} className="text-lg font-black text-indigo-700 cursor-pointer select-none active:opacity-50 transition-opacity">
-            Jurandir Baby 🍼
+          <h1 onClick={() => window.location.reload()} className="text-[17px] font-black text-indigo-700 cursor-pointer select-none active:opacity-50 transition-opacity tracking-tight">
+            Jurandir Baby 🍼👶🧸
           </h1>
           <div className="flex items-center gap-2">
              <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
@@ -177,14 +177,14 @@ export default function App() {
         <div className="grid grid-cols-12 gap-2">
           <div className="col-span-8 relative">
             <Search className="absolute left-3 top-3.5 h-3.5 w-3.5 text-slate-600" />
-            <input className="w-full rounded-xl bg-slate-100 py-3 pl-9 pr-10 text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" placeholder="Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
+            <input className="w-full rounded-xl bg-slate-100 py-3.5 pl-9 pr-10 text-base font-black outline-none border-2 border-transparent focus:border-indigo-500 placeholder:font-normal" placeholder="Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
             {busca && <button onClick={() => setBusca('')} className="absolute right-3 top-3.5 text-slate-500"><X size={16}/></button>}
           </div>
           <div className="col-span-4 relative">
             <select 
               value={categoriaFiltro} 
               onChange={(e) => setCategoriaFiltro(e.target.value)} 
-              className="w-full bg-slate-950 text-white text-[10px] font-black py-4 px-0 rounded-xl appearance-none outline-none shadow-md h-full uppercase text-center"
+              className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 px-0 rounded-xl appearance-none outline-none shadow-md h-full uppercase text-center"
             >
               <option value="Todas">TODAS</option>
               {listaCategorias.map(cat => <option key={cat.id} value={cat.nome}>{cat.nome.toUpperCase()}</option>)}
@@ -236,7 +236,7 @@ export default function App() {
               <div className="flex justify-center">
                 <div className="relative h-32 w-32 rounded-[2.5rem] bg-slate-50 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden shadow-inner">
                   {novoItem.foto_url ? <img src={novoItem.foto_url} className="h-full w-full object-cover" /> : <Camera size={32} className="text-slate-300" />}
-                  <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/10 opacity-0 active:opacity-100">
+                  <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/10 opacity-0 active:opacity-100 transition-opacity">
                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadFoto(e, true)} />
                     {uploading ? <Loader2 className="animate-spin text-white" size={32} /> : <Plus className="text-white" size={40} />}
                   </label>
@@ -250,24 +250,24 @@ export default function App() {
                     <button onClick={() => escutarVoz((t) => setNovoItem({...novoItem, item_nome: t}))} className="bg-indigo-50 text-indigo-600 p-4 rounded-2xl active:bg-indigo-100"><Mic size={24}/></button>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none" value={novoItem.marca} onChange={e => setNovoItem({...novoItem, marca: e.target.value})} /></div>
-                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Preço (R$)</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-900 outline-none" value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} /></div>
+                <div className="grid grid-cols-2 gap-4 text-left">
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" value={novoItem.marca} onChange={e => setNovoItem({...novoItem, marca: e.target.value})} /></div>
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Preço (R$)</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-900 outline-none border-2 border-transparent focus:border-indigo-500" value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Loja / Local</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none" value={novoItem.local_compra} onChange={e => setNovoItem({...novoItem, local_compra: e.target.value})} /></div>
-                  <div className="space-y-1.5 text-left"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Data</label><input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none" value={novoItem.data_compra} onChange={e => setNovoItem({...novoItem, data_compra: e.target.value})} /></div>
+                <div className="grid grid-cols-2 gap-4 text-left">
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Loja / Local</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" value={novoItem.local_compra} onChange={e => setNovoItem({...novoItem, local_compra: e.target.value})} /></div>
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Data</label><input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" value={novoItem.data_compra} onChange={e => setNovoItem({...novoItem, data_compra: e.target.value})} /></div>
                 </div>
                 <div className="space-y-1.5 text-left">
                   <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Categoria</label>
-                  <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>
+                  <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none shadow-sm border-2 border-transparent focus:border-indigo-500" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>
                     {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                   </select>
                 </div>
               </div>
             </div>
-            <div className="p-6 bg-white border-t shrink-0 pb-12 shadow-inner">
-              <button onClick={adicionarAoEnxoval} disabled={loading} className="w-full bg-indigo-700 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95 transition-all">
+            <div className="p-6 bg-white border-t shrink-0 pb-12 shadow-inner text-center">
+              <button onClick={adicionarAoEnxoval} disabled={loading} className="w-full bg-indigo-700 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95 transition-all uppercase tracking-widest">
                 {loading ? <Loader2 className="animate-spin mx-auto" size={24} /> : "ADICIONAR AO ENXOVAL"}
               </button>
             </div>
@@ -301,20 +301,20 @@ export default function App() {
               <div className="space-y-6">
                 {editando.status !== 'Presente' && (
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-400 shadow-sm" value={editando.marca || ''} onChange={e => setEditando({...editando, marca: e.target.value})} /></div>
-                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Preço (R$)</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-900 outline-none shadow-sm" value={editando.preco_pago || ''} onChange={e => setEditando({...editando, preco_pago: e.target.value})} /></div>
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500 shadow-sm" value={editando.marca || ''} onChange={e => setEditando({...editando, marca: e.target.value})} /></div>
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Preço (R$)</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-900 outline-none border-2 border-transparent focus:border-indigo-500 shadow-sm" value={editando.preco_pago || ''} onChange={e => setEditando({...editando, preco_pago: e.target.value})} /></div>
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-4 text-left">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Categoria</label>
-                    <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none shadow-sm" value={editando.categoria_id} onChange={e => setEditando({...editando, categoria_id: e.target.value})}>
+                    <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none shadow-sm border-2 border-transparent focus:border-indigo-500" value={editando.categoria_id} onChange={e => setEditando({...editando, categoria_id: e.target.value})}>
                       {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Data</label>
-                    <input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none shadow-sm" value={editando.data_compra || ''} onChange={e => setEditando({...editando, data_compra: e.target.value})} />
+                    <input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none shadow-sm border-2 border-transparent focus:border-indigo-500" value={editando.data_compra || ''} onChange={e => setEditando({...editando, data_compra: e.target.value})} />
                   </div>
                 </div>
                 {editando.status === 'Presente' && (
