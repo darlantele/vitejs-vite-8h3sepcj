@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import {
-  Mic, Camera, Search, Plus, Baby, ShoppingCart, X, Loader2, Heart, Trash2
+  Mic, Camera, Search, Plus, Baby, ShoppingCart, X, Loader2, Heart, Trash2, Package
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -24,13 +24,18 @@ export default function App() {
   const [novoItem, setNovoItem] = useState({
     item_nome: '',
     categoria_id: '',
+    tamanho_especificacao: 'N/A',
     marca: '',
     preco_pago: '',
+    qtd_pacotes: 1,
+    unidades_por_pacote: 1,
     local_compra: '',
     data_compra: new Date().toISOString().split('T')[0],
     foto_url: '',
     status: 'Pendente'
   });
+
+  const tamanhos = ['N/A', 'RN', 'P', 'M', 'G', 'GG', '+3m', '+6m', '+9m', '+12m', '+18m', '+2a', '+3a'];
 
   useEffect(() => { 
     fetchCategorias();
@@ -95,11 +100,15 @@ export default function App() {
   async function adicionarAoEnxoval() {
     if (!novoItem.item_nome.trim()) return;
     setLoading(true);
+    const precoFinal = Number(novoItem.preco_pago) * (novoItem.qtd_pacotes || 1);
     const { error } = await supabase.from('enxoval').insert([{
       item_nome: novoItem.item_nome,
       categoria_id: novoItem.categoria_id,
+      tamanho_especificacao: novoItem.tamanho_especificacao,
       marca: novoItem.marca,
-      preco_pago: novoItem.preco_pago || 0,
+      preco_pago: precoFinal,
+      qtd_pacotes: novoItem.qtd_pacotes,
+      unidades_por_pacote: novoItem.unidades_por_pacote,
       local_compra: novoItem.local_compra,
       data_compra: novoItem.data_compra,
       foto_url: novoItem.foto_url,
@@ -108,7 +117,7 @@ export default function App() {
     }]);
     if (!error) {
       setMostrarModal(false);
-      setNovoItem({ ...novoItem, item_nome: '', foto_url: '' });
+      setNovoItem({ ...novoItem, item_nome: '', foto_url: '', preco_pago: '', qtd_pacotes: 1 });
       fetchEnxoval();
     } else alert(error.message);
     setLoading(false);
@@ -120,8 +129,11 @@ export default function App() {
     setLoading(true);
     const { error } = await supabase.from('enxoval').update({
       item_nome: editando.item_nome,
+      tamanho_especificacao: editando.tamanho_especificacao,
       marca: editando.status === 'Presente' ? null : editando.marca,
       preco_pago: editando.status === 'Presente' ? 0 : editando.preco_pago,
+      qtd_pacotes: editando.qtd_pacotes,
+      unidades_por_pacote: editando.unidades_por_pacote,
       local_compra: editando.status === 'Presente' ? null : editando.local_compra,
       data_compra: editando.data_compra,
       status: editando.status,
@@ -156,19 +168,19 @@ export default function App() {
     return (statusMatch && catMatch && (i.item_nome ?? '').toLowerCase().includes(busca.toLowerCase()));
   });
 
+  const isFralda = (catId: string) => {
+    const cat = listaCategorias.find(c => c.id === catId);
+    return cat?.nome.toLowerCase().includes('fralda');
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-900 w-full flex flex-col overflow-x-hidden">
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 w-full shadow-sm">
         <div className="flex justify-between items-center mb-3">
-          <h1 onClick={() => window.location.reload()} className="text-[17px] font-black text-indigo-700 cursor-pointer select-none active:opacity-50 transition-opacity tracking-tight">
+          <h1 onClick={() => window.location.reload()} className="text-[17px] font-black text-indigo-700 cursor-pointer select-none active:opacity-50 transition-opacity tracking-tight flex flex-col items-start leading-none">
             <span className="leading-none">Jurandir Baby</span>
-            <div className="flex gap-1 mt-1 text-sm leading-none">
-              <span>🍼</span>
-              <span>👶</span>
-              <span>🚗</span>
-            </div>
+            <div className="flex gap-1 mt-1 text-sm leading-none"><span>🍼</span><span>👶</span><span>🚗</span></div>
           </h1>
-          
           <div className="flex items-center gap-2">
              <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
                 <button onClick={() => setAbaAtiva('Pendentes')} className={`px-2 py-1 rounded-md text-[9px] font-bold ${abaAtiva === 'Pendentes' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500'}`}>FALTAM</button>
@@ -187,11 +199,8 @@ export default function App() {
             {busca && <button onClick={() => setBusca('')} className="absolute right-3 top-3.5 text-slate-500"><X size={16}/></button>}
           </div>
           <div className="col-span-4 relative">
-            <select 
-              value={categoriaFiltro} 
-              onChange={(e) => setCategoriaFiltro(e.target.value)} 
-              className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 rounded-xl appearance-none outline-none shadow-md h-full uppercase text-center flex items-center justify-center px-0 m-0 border-none"
-            >
+            <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} 
+              className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 px-0 indent-0 text-center appearance-none outline-none shadow-md h-full uppercase m-0 border-none">
               <option value="Todas">TODAS</option>
               {listaCategorias.map(cat => <option key={cat.id} value={cat.nome}>{cat.nome.toUpperCase()}</option>)}
             </select>
@@ -208,8 +217,15 @@ export default function App() {
               </div>
               <div onClick={() => setEditando(item)} className="flex-1 min-w-0 text-left">
                 <div className="flex justify-between items-start mb-1">
-                  <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">{item.categorias?.nome || 'Outros'}</span>
-                  {item.condicao && <span className="text-[8px] px-2 py-0.5 rounded-full font-black text-white uppercase bg-indigo-700 shadow-sm">{item.condicao}</span>}
+                  <div className="flex gap-1 items-center">
+                    <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">{item.categorias?.nome}</span>
+                    {item.tamanho_especificacao !== 'N/A' && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold border border-slate-200">{item.tamanho_especificacao}</span>
+                    )}
+                  </div>
+                  {item.status === 'Comprado' && item.unidades_por_pacote > 1 && (
+                    <span className="text-[9px] text-slate-400 flex items-center gap-0.5"><Package size={10}/> {item.qtd_pacotes * item.unidades_por_pacote} un</span>
+                  )}
                 </div>
                 <h3 className="font-black text-black text-[17px] truncate leading-tight tracking-tight">{item.item_nome}</h3>
                 <div className="mt-1">
@@ -257,18 +273,28 @@ export default function App() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-left">
-                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" value={novoItem.marca} onChange={e => setNovoItem({...novoItem, marca: e.target.value})} /></div>
-                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Preço (R$)</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-900 outline-none border-2 border-transparent focus:border-indigo-500" value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} /></div>
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Categoria</label>
+                    <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none border-2 border-transparent focus:border-indigo-500 shadow-sm" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>
+                      {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Tamanho / Idade</label>
+                    <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none border-2 border-transparent focus:border-indigo-500 shadow-sm" value={novoItem.tamanho_especificacao} onChange={e => setNovoItem({...novoItem, tamanho_especificacao: e.target.value})}>
+                      {tamanhos.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
                 </div>
+
+                {isFralda(novoItem.categoria_id) && (
+                  <div className="grid grid-cols-2 gap-4 text-left animate-in zoom-in-95">
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-indigo-600 uppercase ml-1">Qtd Pacotes</label><input type="number" className="w-full bg-indigo-50 p-4 rounded-2xl text-base font-black outline-none border-2 border-indigo-100" value={novoItem.qtd_pacotes} onChange={e => setNovoItem({...novoItem, qtd_pacotes: Number(e.target.value)})} /></div>
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-indigo-600 uppercase ml-1">Fraldas/Pacote</label><input type="number" className="w-full bg-indigo-50 p-4 rounded-2xl text-base font-black outline-none border-2 border-indigo-100" value={novoItem.unidades_por_pacote} onChange={e => setNovoItem({...novoItem, unidades_por_pacote: Number(e.target.value)})} /></div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4 text-left">
-                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Loja / Local</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" value={novoItem.local_compra} onChange={e => setNovoItem({...novoItem, local_compra: e.target.value})} /></div>
-                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Data</label><input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" value={novoItem.data_compra} onChange={e => setNovoItem({...novoItem, data_compra: e.target.value})} /></div>
-                </div>
-                <div className="space-y-1.5 text-left">
-                  <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Categoria</label>
-                  <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none shadow-sm border-2 border-transparent focus:border-indigo-500" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>
-                    {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                  </select>
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" value={novoItem.marca} onChange={e => setNovoItem({...novoItem, marca: e.target.value})} /></div>
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Preço {isFralda(novoItem.categoria_id) ? 'Unitário' : '(R$)'}</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-900 outline-none border-2 border-transparent focus:border-indigo-500" value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} /></div>
                 </div>
               </div>
             </div>
@@ -297,7 +323,6 @@ export default function App() {
                     {uploading ? <Loader2 className="animate-spin text-white" size={32} /> : <Plus className="text-white" size={48} />}
                   </label>
                 </div>
-                {editando.foto_url && <button type="button" onClick={() => setEditando({...editando, foto_url: null})} className="text-red-600 font-black text-xs uppercase bg-red-50 px-4 py-2 rounded-full border border-red-100"><Trash2 size={12} className="inline mr-1"/> Excluir Foto</button>}
               </div>
               <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl shadow-inner border border-slate-200">
                 {['Pendente', 'Comprado', 'Presente'].map(s => (
@@ -305,24 +330,33 @@ export default function App() {
                 ))}
               </div>
               <div className="space-y-6">
-                {editando.status !== 'Presente' && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500 shadow-sm" value={editando.marca || ''} onChange={e => setEditando({...editando, marca: e.target.value})} /></div>
-                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Preço (R$)</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-900 outline-none border-2 border-transparent focus:border-indigo-500 shadow-sm" value={editando.preco_pago || ''} onChange={e => setEditando({...editando, preco_pago: e.target.value})} /></div>
-                  </div>
-                )}
-                <div className="grid grid-cols-2 gap-4 text-left">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Categoria</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Categoria</label>
                     <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none shadow-sm border-2 border-transparent focus:border-indigo-500" value={editando.categoria_id} onChange={e => setEditando({...editando, categoria_id: e.target.value})}>
                       {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Data</label>
-                    <input type="date" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none shadow-sm border-2 border-transparent focus:border-indigo-500" value={editando.data_compra || ''} onChange={e => setEditando({...editando, data_compra: e.target.value})} />
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Tamanho / Idade</label>
+                    <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none shadow-sm border-2 border-transparent focus:border-indigo-500" value={editando.tamanho_especificacao} onChange={e => setEditando({...editando, tamanho_especificacao: e.target.value})}>
+                      {tamanhos.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
                   </div>
                 </div>
+
+                {isFralda(editando.categoria_id) && (
+                  <div className="grid grid-cols-2 gap-4 text-left animate-in zoom-in-95">
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-indigo-600 uppercase ml-1">Qtd Pacotes</label><input type="number" className="w-full bg-indigo-50 p-4 rounded-2xl text-base font-black outline-none border-2 border-indigo-100" value={editando.qtd_pacotes || 1} onChange={e => setEditando({...editando, qtd_pacotes: Number(e.target.value)})} /></div>
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-indigo-600 uppercase ml-1">Fraldas/Pacote</label><input type="number" className="w-full bg-indigo-50 p-4 rounded-2xl text-base font-black outline-none border-2 border-indigo-100" value={editando.unidades_por_pacote || 1} onChange={e => setEditando({...editando, unidades_por_pacote: Number(e.target.value)})} /></div>
+                  </div>
+                )}
+
+                {editando.status !== 'Presente' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500 shadow-sm" value={editando.marca || ''} onChange={e => setEditando({...editando, marca: e.target.value})} /></div>
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Preço Total</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-900 outline-none border-2 border-transparent focus:border-indigo-500 shadow-sm" value={editando.preco_pago || ''} onChange={e => setEditando({...editando, preco_pago: e.target.value})} /></div>
+                  </div>
+                )}
+
                 {editando.status === 'Presente' && (
                   <div className="space-y-1.5 text-left animate-in zoom-in-95 duration-200">
                     <label className="text-[10px] font-black text-pink-700 uppercase ml-1 tracking-widest">Quem presenteou o Juras?</label>
