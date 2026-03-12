@@ -1,10 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Mic, Camera, Search, Plus, Baby, ShoppingCart, Trash2 } from "lucide-react";
+import { Camera, Search, Plus, Baby, ShoppingCart } from "lucide-react";
 
-// ===============================
-// CONEXÃO COM SUPABASE
-// ===============================
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -12,78 +9,55 @@ const supabase = createClient(
 
 export default function App() {
 
-  // ===============================
-  // ESTADOS
-  // ===============================
   const [itens, setItens] = useState<any[]>([]);
-  const [listaCategorias, setListaCategorias] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
   const [busca, setBusca] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [editando, setEditando] = useState<any | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
 
-  // ===============================
-  // TAMANHOS
-  // ===============================
-  const tamanhos = [
-    "N/A","RN","P","M","G","GG","+3m","+6m","+9m","+12m","+18m","+24m"
-  ];
-
-  // ===============================
-  // NOVO ITEM
-  // ===============================
   const [novoItem, setNovoItem] = useState({
     item_nome: "",
-    categoria_id:"",
+    categoria_id: "",
     tamanho_especificacao: "N/A",
     marca: "",
-    preco_pago:"",
+    preco_pago: "",
     qtd_pacotes: 1,
     unidades_por_pacote: 1,
-    local_compra:"",
+    local_compra: "",
     data_compra: new Date().toISOString().split("T")[0],
     foto_url: "",
     status: "Pendente"
   });
 
-  useEffect(() => {
-    fetchCategorias();
-    fetchEnxoval();
-  }, []);
+  const tamanhos = [
+    "N/A","RN","P","M","G","GG","+3m","+6m","+9m","+12m","+18m","+24m"
+  ];
 
-  // ===============================
-  // BUSCAR CATEGORIAS
-  // ===============================
-  async function fetchCategorias() {
+  useEffect(()=>{
+    fetchCategorias();
+    fetchItens();
+  },[]);
+
+  async function fetchCategorias(){
 
     const { data } = await supabase
       .from("categorias")
       .select("*")
       .order("nome");
 
-    if (data) {
+    if(data){
+      setCategorias(data);
 
-      setListaCategorias(data);
-
-      if (data.length > 0) {
-        setNovoItem(prev => ({
+      if(data.length > 0){
+        setNovoItem(prev=>({
           ...prev,
-          categoria_id: data[0].id
+          categoria_id:data[0].id
         }));
       }
-
     }
 
   }
 
-  // ===============================
-  // BUSCAR ITENS
-  // ===============================
-  async function fetchEnxoval() {
-
-    setLoading(true);
+  async function fetchItens(){
 
     const { data } = await supabase
       .from("enxoval")
@@ -91,57 +65,43 @@ export default function App() {
       .eq("interesse","Ativo")
       .order("item_nome");
 
-    if (data) setItens(data);
-
-    setLoading(false);
+    if(data){
+      setItens(data);
+    }
 
   }
 
-  // ===============================
-  // DETECTAR FRALDA
-  // ===============================
-  const isFralda = (catId:string) => {
-
-    const cat = listaCategorias.find(c => c.id === catId);
-
-    if(!cat) return false;
-
-    return cat.nome?.toLowerCase().includes("fralda");
-
-  };
-
-  // ===============================
-  // COMPRESSÃO DE IMAGEM
-  // ===============================
   const comprimirImagem = (file: File): Promise<Blob> => {
 
-    return new Promise((resolve) => {
+    return new Promise((resolve)=>{
 
       const reader = new FileReader();
+
       reader.readAsDataURL(file);
 
-      reader.onload = (event) => {
+      reader.onload = e=>{
 
         const img = new Image();
-        img.src = event.target?.result as string;
 
-        img.onload = () => {
+        img.src = e.target?.result as string;
+
+        img.onload = ()=>{
 
           const canvas = document.createElement("canvas");
 
           const MAX_WIDTH = 800;
 
-          const scaleSize = MAX_WIDTH / img.width;
+          const scale = MAX_WIDTH / img.width;
 
           canvas.width = MAX_WIDTH;
-          canvas.height = img.height * scaleSize;
+          canvas.height = img.height * scale;
 
           const ctx = canvas.getContext("2d");
 
           ctx?.drawImage(img,0,0,canvas.width,canvas.height);
 
-          ctx?.canvas.toBlob(
-            (blob)=>resolve(blob as Blob),
+          canvas.toBlob(
+            blob=>resolve(blob as Blob),
             "image/jpeg",
             0.7
           );
@@ -154,62 +114,39 @@ export default function App() {
 
   };
 
-  // ===============================
-  // UPLOAD FOTO
-  // ===============================
-  async function handleUploadFoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function uploadFoto(e: React.ChangeEvent<HTMLInputElement>){
 
-    try{
+    if(!e.target.files || e.target.files.length === 0) return;
 
-      if(!e.target.files || e.target.files.length === 0) return;
+    const fotoComprimida = await comprimirImagem(e.target.files[0]);
 
-      setUploading(true);
+    const fileName = `foto-${Date.now()}.jpg`;
 
-      const arquivoOriginal = e.target.files[0];
+    const { error } = await supabase
+      .storage
+      .from("fotos-enxoval")
+      .upload(fileName,fotoComprimida);
 
-      const fotoComprimida = await comprimirImagem(arquivoOriginal);
-
-      const fileName = `foto-${Date.now()}.jpg`;
-
-      const { error:uploadError } =
-        await supabase.storage
-        .from("fotos-enxoval")
-        .upload(fileName,fotoComprimida);
-
-      if(uploadError) throw uploadError;
-
-      const { data } =
-        supabase.storage
-        .from("fotos-enxoval")
-        .getPublicUrl(fileName);
-
-      setNovoItem({
-        ...novoItem,
-        foto_url:data.publicUrl
-      });
-
-    }
-    catch(error:any){
-
+    if(error){
       alert(error.message);
-
+      return;
     }
-    finally{
 
-      setUploading(false);
+    const { data } =
+      supabase.storage
+      .from("fotos-enxoval")
+      .getPublicUrl(fileName);
 
-    }
+    setNovoItem({
+      ...novoItem,
+      foto_url:data.publicUrl
+    });
 
   }
 
-  // ===============================
-  // ADICIONAR ITEM
-  // ===============================
-  async function adicionarAoEnxoval(){
+  async function adicionarItem(){
 
     if(!novoItem.item_nome.trim()) return;
-
-    setLoading(true);
 
     const precoFinal =
       (Number(novoItem.preco_pago) || 0) *
@@ -228,13 +165,11 @@ export default function App() {
         local_compra:novoItem.local_compra,
         data_compra:novoItem.data_compra,
         foto_url:novoItem.foto_url,
-        status:novoItem.status,
+        status:"Comprado",
         interesse:"Ativo"
       }]);
 
     if(!error){
-
-      setMostrarModal(false);
 
       setNovoItem({
         ...novoItem,
@@ -242,89 +177,46 @@ export default function App() {
         foto_url:""
       });
 
-      fetchEnxoval();
-
-    }
-    else{
-
-      alert(error.message);
-
-    }
-
-    setLoading(false);
-
-  }
-
-  // ===============================
-  // EXCLUIR ITEM
-  // ===============================
-  async function excluirItem(){
-
-    if(!editando) return;
-
-    if(!confirm(`Excluir "${editando.item_nome}"?`)) return;
-
-    const { error } = await supabase
-      .from("enxoval")
-      .delete()
-      .eq("id",editando.id);
-
-    if(!error){
-
-      setEditando(null);
-
-      fetchEnxoval();
+      fetchItens();
 
     }
 
   }
 
-  // ===============================
-  // TOTAL GASTO
-  // ===============================
-  const totalGasto = itens
-    .reduce((acc,i)=>acc + Number(i.preco_pago || 0),0);
+  const totalGasto = itens.reduce(
+    (acc,i)=>acc + Number(i.preco_pago || 0),
+    0
+  );
 
-  // ===============================
-  // FILTRO
-  // ===============================
-  const itensFiltrados = itens.filter(i => {
+  const itensFiltrados = itens.filter(i=>{
 
-    const catMatch =
+    const matchCategoria =
       categoriaFiltro === "Todas" ||
       i.categorias?.nome === categoriaFiltro;
 
-    return (
-      catMatch &&
+    const matchBusca =
       (i.item_nome ?? "")
-        .toLowerCase()
-        .includes(busca.toLowerCase())
-    );
+      .toLowerCase()
+      .includes(busca.toLowerCase());
+
+    return matchCategoria && matchBusca;
 
   });
 
-  // ===============================
-  // RENDER
-  // ===============================
-  return (
+  return(
 
     <div className="flex flex-col min-h-screen bg-slate-50">
 
-      {/* HEADER */}
-      <header className="sticky top-0 bg-white border-b px-4 py-3 shadow-sm">
+      <header className="sticky top-0 bg-white border-b px-4 py-3">
 
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex justify-between mb-3">
 
-          <h1 className="text-lg font-black text-indigo-700">
+          <h1 className="font-black text-indigo-700">
             Jurandir Baby
           </h1>
 
-          <div className="bg-green-100 px-3 py-1.5 rounded-lg border border-green-300">
-
-            <span className="text-green-800 font-black">
-              R$ {totalGasto.toFixed(2)}
-            </span>
-
+          <div className="bg-green-100 px-3 py-1 rounded-lg">
+            R$ {totalGasto.toFixed(2)}
           </div>
 
         </div>
@@ -333,10 +225,10 @@ export default function App() {
 
           <div className="col-span-8 relative">
 
-            <Search className="absolute left-3 top-3 text-slate-500" size={16} />
+            <Search size={16} className="absolute left-3 top-3 text-slate-500"/>
 
             <input
-              className="w-full rounded-xl bg-slate-100 py-3 pl-9 pr-4"
+              className="w-full rounded-xl bg-slate-100 py-3 pl-8"
               placeholder="Buscar..."
               value={busca}
               onChange={e=>setBusca(e.target.value)}
@@ -349,14 +241,14 @@ export default function App() {
             <select
               value={categoriaFiltro}
               onChange={e=>setCategoriaFiltro(e.target.value)}
-              className="w-full bg-indigo-700 text-white py-3 rounded-xl"
+              className="w-full bg-indigo-700 text-white rounded-xl py-3"
             >
 
               <option value="Todas">TODAS</option>
 
-              {listaCategorias.map(cat=>(
-                <option key={cat.id} value={cat.nome}>
-                  {cat.nome.toUpperCase()}
+              {categorias.map(c=>(
+                <option key={c.id} value={c.nome}>
+                  {c.nome.toUpperCase()}
                 </option>
               ))}
 
@@ -368,10 +260,10 @@ export default function App() {
 
       </header>
 
-      {/* LISTA */}
-      <main className="flex-1 overflow-y-auto p-3 space-y-3 pb-28">
+      <main className="flex-1 overflow-y-auto p-3 space-y-3 pb-32">
 
         {itensFiltrados.map(item=>(
+
           <div
             key={item.id}
             className="bg-white rounded-2xl p-4 shadow border"
@@ -379,7 +271,7 @@ export default function App() {
 
             <div className="flex gap-4">
 
-              <div className="h-16 w-16 rounded-xl bg-slate-50 flex items-center justify-center">
+              <div className="h-16 w-16 bg-slate-100 rounded-xl flex items-center justify-center">
 
                 {item.foto_url
                   ? <img src={item.foto_url} className="h-full w-full object-cover rounded-xl"/>
@@ -388,46 +280,48 @@ export default function App() {
 
               </div>
 
-              <div className="flex-1">
+              <div>
 
-                <span className="text-xs font-black text-indigo-700">
+                <div className="text-xs font-bold text-indigo-700">
 
                   {item.categorias?.nome}
 
-                </span>
+                </div>
 
-                <h3 className="font-black text-lg">
+                <div className="font-bold text-lg">
+
                   {item.item_nome}
-                </h3>
 
-                <span className="text-indigo-900 font-black">
+                </div>
+
+                <div className="text-indigo-900 font-bold">
 
                   R$ {Number(item.preco_pago || 0).toFixed(2)}
 
-                </span>
+                </div>
 
               </div>
 
             </div>
 
           </div>
+
         ))}
 
       </main>
 
-      {/* BOTÃO ADICIONAR */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t px-10 py-4 flex justify-around">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-4">
 
-        <ShoppingCart size={24} className="text-indigo-700"/>
+        <ShoppingCart className="text-indigo-700"/>
 
         <button
-          onClick={()=>setMostrarModal(true)}
-          className="bg-indigo-700 p-4 rounded-full text-white shadow-xl"
+          onClick={adicionarItem}
+          className="bg-indigo-700 p-4 rounded-full text-white"
         >
-          <Plus size={28}/>
+          <Plus/>
         </button>
 
-        <Baby size={24} className="text-slate-400"/>
+        <Baby className="text-slate-400"/>
 
       </nav>
 
