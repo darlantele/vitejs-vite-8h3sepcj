@@ -51,7 +51,7 @@ export default function App() {
 
   async function fetchEnxoval() {
     setLoading(true);
-    const { data } = await supabase.from('enxoval').select(`*, categorias(nome)` boat).eq('interesse', 'Ativo').order('item_nome');
+    const { data } = await supabase.from('enxoval').select(`*, categorias(nome)`).eq('interesse', 'Ativo').order('item_nome');
     if (data) setItens(data);
     setLoading(false);
   }
