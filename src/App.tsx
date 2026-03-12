@@ -21,7 +21,7 @@ export default function App() {
   const [fotoZoom, setFotoZoom] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const tamanhos = ["N/A", "RN", "0-3m", "3-6m", "P", "M", "G", "GG", "+3m", "+6m", "+9m", "+12m", "+18m", "+24m", "+3a"];
+  const tamanhos = ["N/A", "RN", "0-3m", "3-6m", "6-9m", "9-12m", "P", "M", "G", "GG", "+3m", "+6m", "+9m", "+12m", "+18m", "+2a", "+3a"];
 
   const [novoItem, setNovoItem] = useState({
     item_nome: '',
@@ -60,7 +60,6 @@ export default function App() {
     setLoading(false);
   }
 
-  // FUNÇÃO UNIFICADA: Agora o nome está correto em todo o código
   const ehFralda = (catId: string) => {
     const nomeCat = listaCategorias.find(c => c.id === catId)?.nome.toLowerCase() || "";
     return nomeCat === "fraldas" || nomeCat === "fralda";
@@ -81,21 +80,15 @@ export default function App() {
   async function adicionarAoEnxoval() {
     if (!novoItem.item_nome.trim()) return;
     setLoading(true);
+    
+    // Lógica Jurandir: Multiplica o preço se for fralda e estiver comprando vários pacotes
     const precoFinal = ehFralda(novoItem.categoria_id) 
       ? Number(novoItem.preco_pago) * novoItem.qtd_pacotes 
       : Number(novoItem.preco_pago);
 
     const { error } = await supabase.from('enxoval').insert([{
-      item_nome: novoItem.item_nome,
-      categoria_id: novoItem.categoria_id,
-      tamanho_especificacao: novoItem.tamanho_especificacao,
-      marca: novoItem.marca,
+      ...novoItem,
       preco_pago: precoFinal,
-      qtd_pacotes: novoItem.qtd_pacotes,
-      unidades_por_pacote: novoItem.unidades_por_pacote,
-      data_compra: novoItem.data_compra,
-      foto_url: novoItem.foto_url,
-      status: novoItem.status,
       interesse: 'Ativo'
     }]);
 
@@ -154,7 +147,10 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-900 w-full flex flex-col overflow-x-hidden">
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 w-full shadow-sm">
         <div className="flex justify-between items-center mb-3">
-          <h1 onClick={() => window.location.reload()} className="text-[17px] font-black text-indigo-700">Jurandir Baby</h1>
+          <h1 onClick={() => window.location.reload()} className="text-[17px] font-black text-indigo-700 flex flex-col leading-none">
+            Jurandir Baby
+            <div className="flex gap-1 mt-1 text-sm"><span>🍼</span><span>👶</span><span>🚗</span></div>
+          </h1>
           <div className="flex items-center gap-2">
              <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
                 <button onClick={() => setAbaAtiva('Pendentes')} className={`px-2 py-1 rounded-md text-[9px] font-bold ${abaAtiva === 'Pendentes' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500'}`}>FALTAM</button>
@@ -187,24 +183,24 @@ export default function App() {
       <main className="flex-1 p-3 space-y-3 pb-32">
         {itensFiltrados.map((item) => (
           <div key={item.id} onClick={() => setEditando(item)} className="bg-white rounded-2xl p-4 shadow-md border border-slate-200 flex flex-col gap-2">
-            <div className="flex gap-4">
+            <div className="flex gap-4 text-left">
               <div onClick={(e) => { e.stopPropagation(); item.foto_url && setFotoZoom(item.foto_url); }} className="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-200 overflow-hidden shrink-0 cursor-zoom-in">
                 {item.foto_url ? <img src={item.foto_url} className="h-full w-full object-cover" /> : <Camera size={24} className="text-slate-400" />}
               </div>
-              <div className="flex-1 min-w-0 text-left">
+              <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start mb-1">
                   <div className="flex gap-1 items-center">
                     <span className="text-[10px] font-black text-indigo-700 uppercase">{item.categorias?.nome}</span>
                     {item.tamanho_especificacao !== 'N/A' && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white text-indigo-700 font-bold border-2 border-indigo-600 shadow-sm">{item.tamanho_especificacao}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white text-indigo-700 font-bold border-2 border-indigo-600">{item.tamanho_especificacao}</span>
                     )}
                   </div>
                   <span className="text-[9px] text-slate-400 flex items-center gap-0.5 font-bold bg-slate-50 px-2 py-1 rounded-md">
                     <Package size={10}/> {item.qtd_pacotes * item.unidades_por_pacote} un
                   </span>
                 </div>
-                <h3 className="font-black text-black text-[17px] truncate leading-tight tracking-tight">{item.item_nome}</h3>
-                <div className="mt-1 flex justify-between items-center">
+                <h3 className="font-black text-black text-[17px] truncate leading-tight">{item.item_nome}</h3>
+                <div className="mt-1">
                   {item.status === 'Presente' ? (
                     <span className="text-[12px] font-black text-pink-700 italic"><Heart size={10} fill="currentColor" className="inline mr-1"/> {item.quem_presenteou || 'Presente'}</span>
                   ) : (
@@ -217,16 +213,22 @@ export default function App() {
         ))}
       </main>
 
+      {fotoZoom && (
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6" onClick={() => setFotoZoom(null)}>
+          <img src={fotoZoom} className="max-w-full max-h-[85vh] rounded-3xl shadow-2xl" />
+        </div>
+      )}
+
       {mostrarResumo && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setMostrarResumo(false)}>
-          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-sm font-black text-indigo-700 uppercase tracking-widest">Total de Itens</h2>
+              <h2 className="text-sm font-black text-indigo-700 uppercase">Total Acumulado</h2>
               <button onClick={() => setMostrarResumo(false)}><X size={20}/></button>
             </div>
             <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
               {resumoTamanhos.map(r => (
-                <div key={r.tamanho} className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center text-left">
+                <div key={r.tamanho} className="bg-slate-50 p-3 rounded-xl border flex justify-between items-center">
                   <span className="font-black text-slate-600">{r.tamanho}</span>
                   <span className="bg-indigo-700 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold">{r.qtd} UN</span>
                 </div>
@@ -236,18 +238,13 @@ export default function App() {
         </div>
       )}
 
-      {fotoZoom && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6" onClick={() => setFotoZoom(null)}>
-          <img src={fotoZoom} className="max-w-full max-h-[85vh] rounded-3xl shadow-2xl" alt="Zoom" />
-        </div>
-      )}
-
       <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-10 py-4 pb-12 flex justify-around items-center z-30">
         <ShoppingCart size={24} className="text-indigo-700" />
         <button onClick={() => setMostrarModal(true)} className="bg-indigo-700 p-4 rounded-full text-white shadow-xl -mt-16 border-4 border-slate-50 active:scale-90 transition-all"><Plus size={28}/></button>
         <Baby size={24} className="text-slate-400" />
       </nav>
 
+      {/* MODAL ADICIONAR - CAMPOS DE FRALDA RESTAURADOS */}
       {mostrarModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center">
           <div className="bg-white w-full max-w-md rounded-t-[2.5rem] p-6 pb-12 animate-in slide-in-from-bottom duration-300 shadow-2xl text-left">
@@ -258,25 +255,34 @@ export default function App() {
             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
               <input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" placeholder="Nome do Item" value={novoItem.item_nome} onChange={e => setNovoItem({...novoItem, item_nome: e.target.value})} />
               <div className="grid grid-cols-2 gap-2">
-                <select className="bg-slate-100 p-4 rounded-2xl text-[12px] font-black appearance-none" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>
+                <select className="bg-slate-100 p-4 rounded-2xl text-[12px] font-black" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>
                   {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
-                <select className="bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none" value={novoItem.tamanho_especificacao} onChange={e => setNovoItem({...novoItem, tamanho_especificacao: e.target.value})}>
+                <select className="bg-slate-100 p-4 rounded-2xl text-base font-black" value={novoItem.tamanho_especificacao} onChange={e => setNovoItem({...novoItem, tamanho_especificacao: e.target.value})}>
                   {tamanhos.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
+              
+              {/* LÓGICA DE CAMPOS DINÂMICOS PARA FRALDA */}
               {ehFralda(novoItem.categoria_id) ? (
                 <div className="grid grid-cols-2 gap-2 animate-in zoom-in-95">
-                  <div className="space-y-1"><label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Pacotes</label><input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black border-2 border-indigo-200 w-full outline-none" value={novoItem.qtd_pacotes} onChange={e => setNovoItem({...novoItem, qtd_pacotes: Number(e.target.value)})} /></div>
-                  <div className="space-y-1"><label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Unid/Pac</label><input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black border-2 border-indigo-200 w-full outline-none" value={novoItem.unidades_por_pacote} onChange={e => setNovoItem({...novoItem, unidades_por_pacote: Number(e.target.value)})} /></div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Nº de Pacotes</label>
+                    <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black border-2 border-indigo-200 w-full outline-none" value={novoItem.qtd_pacotes} onChange={e => setNovoItem({...novoItem, qtd_pacotes: Number(e.target.value)})} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Fraldas por Pacote</label>
+                    <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black border-2 border-indigo-200 w-full outline-none" value={novoItem.unidades_por_pacote} onChange={e => setNovoItem({...novoItem, unidades_por_pacote: Number(e.target.value)})} />
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-1">
-                   <label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Quantidade de Itens</label>
+                   <label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Qtd de Unidades</label>
                    <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black border-2 border-indigo-200 w-full outline-none" value={novoItem.unidades_por_pacote} onChange={e => setNovoItem({...novoItem, unidades_por_pacote: Number(e.target.value)})} />
                 </div>
               )}
-              <input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none" placeholder="Preço Pago (Total)" value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} />
+
+              <input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none" placeholder="Preço Pago (Unitário/Pacote)" value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} />
               <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, true)} className="text-[10px] font-black" />
               <button onClick={adicionarAoEnxoval} disabled={loading} className="w-full bg-indigo-700 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95 transition-transform">{loading ? <Loader2 className="animate-spin mx-auto" size={24} /> : "ADICIONAR AO ENXOVAL"}</button>
             </div>
@@ -284,6 +290,7 @@ export default function App() {
         </div>
       )}
 
+      {/* MODAL EDIÇÃO - CAMPOS DE FRALDA RESTAURADOS */}
       {editando && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center">
           <form onSubmit={salvarEdicao} className="bg-white w-full max-w-md rounded-t-[2.5rem] p-6 pb-12 animate-in slide-in-from-bottom duration-300 shadow-2xl text-left">
@@ -305,14 +312,30 @@ export default function App() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1"><label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Categoria</label>
-                <select className="bg-slate-100 p-4 rounded-2xl text-[12px] font-black w-full appearance-none" value={editando.categoria_id} onChange={e => setEditando({...editando, categoria_id: e.target.value})}>{listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+                <select className="bg-slate-100 p-4 rounded-2xl text-[12px] font-black w-full" value={editando.categoria_id} onChange={e => setEditando({...editando, categoria_id: e.target.value})}>{listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
                 <div className="space-y-1"><label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Tamanho</label>
-                <select className="bg-slate-100 p-4 rounded-2xl text-base font-black w-full appearance-none" value={editando.tamanho_especificacao} onChange={e => setEditando({...editando, tamanho_especificacao: e.target.value})}>{tamanhos.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                <select className="bg-slate-100 p-4 rounded-2xl text-base font-black w-full" value={editando.tamanho_especificacao} onChange={e => setEditando({...editando, tamanho_especificacao: e.target.value})}>{tamanhos.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
               </div>
-              <div className="bg-indigo-50 p-4 rounded-2xl border-2 border-indigo-200">
-                 <label className="text-[9px] font-black text-indigo-600 uppercase block mb-1">Quantidade</label>
-                 <input type="number" className="bg-transparent text-base font-black w-full outline-none" value={editando.unidades_por_pacote || 1} onChange={e => setEditando({...editando, unidades_por_pacote: Number(e.target.value)})} />
-              </div>
+
+              {/* LÓGICA DE CAMPOS DE FRALDA NA EDIÇÃO */}
+              {ehFralda(editando.categoria_id) ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Nº de Pacotes</label>
+                    <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black border-2 border-indigo-200 w-full outline-none" value={editando.qtd_pacotes} onChange={e => setEditando({...editando, qtd_pacotes: Number(e.target.value)})} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Fraldas/Pacote</label>
+                    <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black border-2 border-indigo-200 w-full outline-none" value={editando.unidades_por_pacote} onChange={e => setEditando({...editando, unidades_por_pacote: Number(e.target.value)})} />
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-indigo-50 p-4 rounded-2xl border-2 border-indigo-200">
+                  <label className="text-[9px] font-black text-indigo-600 uppercase block mb-1">Quantidade de Unidades</label>
+                  <input type="number" className="bg-transparent text-base font-black w-full outline-none" value={editando.unidades_por_pacote || 1} onChange={e => setEditando({...editando, unidades_por_pacote: Number(e.target.value)})} />
+                </div>
+              )}
+
               {editando.status !== 'Presente' && (
                 <div className="grid grid-cols-2 gap-2">
                    <div className="space-y-1"><label className="text-[9px] font-black text-indigo-600 ml-2 uppercase tracking-widest">Marca</label><input className="bg-slate-100 p-4 rounded-2xl text-base font-black w-full outline-none" value={editando.marca || ''} onChange={e => setEditando({...editando, marca: e.target.value})} /></div>
@@ -324,8 +347,8 @@ export default function App() {
                 <input className="w-full bg-pink-50 p-4 rounded-2xl text-base font-black text-pink-900 border-2 border-pink-200 outline-none" value={editando.quem_presenteou || ''} onChange={e => setEditando({...editando, quem_presenteou: e.target.value})} /></div>
               )}
               <div className="flex gap-4 pt-4">
-                 <button type="button" onClick={excluirItem} className="bg-red-50 text-red-600 p-5 rounded-2xl active:bg-red-100"><Trash2 size={24}/></button>
-                 <button type="submit" className="flex-1 bg-indigo-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase tracking-widest active:scale-95 transition-all">
+                 <button type="button" onClick={excluirItem} className="bg-red-50 text-red-600 p-5 rounded-2xl"><Trash2 size={24}/></button>
+                 <button type="submit" className="flex-1 bg-indigo-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase active:scale-95 transition-all">
                     {loading ? <Loader2 className="animate-spin mx-auto" /> : "Salvar Alterações"}
                  </button>
               </div>
