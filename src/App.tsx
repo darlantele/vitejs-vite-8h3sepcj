@@ -20,10 +20,8 @@ export default function App() {
   const [editando, setEditando] = useState<any>(null);
   const [fotoZoom, setFotoZoom] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
 
-  // Novos tamanhos adicionados conforme solicitado
-  const tamanhos = ["N/A", "RN", "0-3m", "3-6m", "6-12m", "P", "M", "G", "GG", "+3m", "+6m", "+9m", "+12m", "+18m", "+2a", "+3a"];
+  const tamanhos = ["N/A", "RN", "0-3m", "3-6m", "6-9m", "9-12m", "P", "M", "G", "GG", "+3m", "+6m", "+9m", "+12m", "+18m", "+2a", "+3a"];
 
   const [novoItem, setNovoItem] = useState({
     item_nome: '',
@@ -62,7 +60,6 @@ export default function App() {
     setLoading(false);
   }
 
-  // Sensor de Fralda ajustado: Se não tiver categoria "Fralda", ele libera se o nome do item tiver "fralda"
   const ehFralda = (catId: string, nomeItem: string) => {
     const nomeCat = listaCategorias.find(c => c.id === catId)?.nome.toLowerCase() || "";
     return nomeCat.includes("fralda") || nomeItem.toLowerCase().includes("fralda");
@@ -70,7 +67,6 @@ export default function App() {
 
   async function handleUploadFoto(e: React.ChangeEvent<HTMLInputElement>, isNovo: boolean = false) {
     if (!e.target.files || e.target.files.length === 0) return;
-    setUploading(true);
     const file = e.target.files[0];
     const fileName = `foto-${Date.now()}.jpg`;
     const { error } = await supabase.storage.from('fotos-enxoval').upload(fileName, file);
@@ -79,7 +75,6 @@ export default function App() {
       if (isNovo) setNovoItem({ ...novoItem, foto_url: data.publicUrl });
       else if (editando) setEditando({ ...editando, foto_url: data.publicUrl });
     }
-    setUploading(false);
   }
 
   async function adicionarAoEnxoval() {
@@ -119,11 +114,9 @@ export default function App() {
       item_nome: editando.item_nome,
       tamanho_especificacao: editando.tamanho_especificacao,
       marca: editando.status === 'Presente' ? null : editando.marca,
-      preco_pago: editando.status === 'Presente' ? 0 : editando.preco_pago,
+      preco_pago: editando.preco_pago,
       qtd_pacotes: editando.qtd_pacotes,
       unidades_por_pacote: editando.unidades_por_pacote,
-      local_compra: editando.status === 'Presente' ? null : editando.local_compra,
-      data_compra: editando.data_compra,
       status: editando.status,
       categoria_id: editando.categoria_id,
       quem_presenteou: editando.quem_presenteou,
@@ -149,7 +142,6 @@ export default function App() {
     return (statusMatch && catMatch && i.item_nome.toLowerCase().includes(busca.toLowerCase()));
   });
 
-  // Lógica da "Régua" de Resumo
   const resumoTamanhos = tamanhos.filter(t => t !== 'N/A').map(t => ({
     tamanho: t,
     qtd: itens.filter(i => i.tamanho_especificacao === t && (i.status === 'Comprado' || i.status === 'Presente')).length
@@ -209,6 +201,9 @@ export default function App() {
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-white text-indigo-700 font-bold border-2 border-indigo-600 shadow-sm">{item.tamanho_especificacao}</span>
                     )}
                   </div>
+                  {item.unidades_por_pacote > 1 && (
+                    <span className="text-[9px] text-slate-400 flex items-center gap-0.5"><Package size={10}/> {item.qtd_pacotes * item.unidades_por_pacote} un</span>
+                  )}
                 </div>
                 <h3 className="font-black text-black text-[17px] truncate leading-tight tracking-tight">{item.item_nome}</h3>
                 <div className="mt-1">
@@ -224,10 +219,9 @@ export default function App() {
         ))}
       </main>
 
-      {/* MODAL RESUMO DE TAMANHOS */}
       {mostrarResumo && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setMostrarResumo(false)}>
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-sm font-black text-indigo-700 uppercase">Resumo do Enxoval</h2>
               <button onClick={() => setMostrarResumo(false)}><X size={20}/></button>
@@ -239,7 +233,6 @@ export default function App() {
                   <span className="bg-indigo-700 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold">{r.qtd} un</span>
                 </div>
               ))}
-              {resumoTamanhos.length === 0 && <p className="col-span-2 text-center text-xs text-slate-400 font-bold py-4">Nenhum item com tamanho registrado.</p>}
             </div>
           </div>
         </div>
@@ -247,7 +240,7 @@ export default function App() {
 
       {fotoZoom && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6" onClick={() => setFotoZoom(null)}>
-          <img src={fotoZoom} className="max-w-full max-h-[85vh] rounded-3xl shadow-2xl" />
+          <img src={fotoZoom} className="max-w-full max-h-[85vh] rounded-3xl shadow-2xl" alt="Zoom" />
         </div>
       )}
 
@@ -257,7 +250,7 @@ export default function App() {
         <Baby size={24} className="text-slate-400" />
       </nav>
 
-      {/* MODAL NOVO ITEM */}
+      {/* FORMULÁRIO NOVO ITEM */}
       {mostrarModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center overflow-hidden">
           <div className="bg-white w-full max-w-md rounded-t-[2.5rem] flex flex-col max-h-[90vh] shadow-2xl p-6 pb-12 animate-in slide-in-from-bottom duration-300">
@@ -266,30 +259,74 @@ export default function App() {
               <button onClick={() => setMostrarModal(false)} className="p-2 bg-slate-100 rounded-full"><X size={24}/></button>
             </div>
             <div className="space-y-4 overflow-y-auto">
-              <input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" placeholder="Nome do Item (ex: Fralda Pampers)" value={novoItem.item_nome} onChange={e => setNovoItem({...novoItem, item_nome: e.target.value})} />
+              <input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" placeholder="Nome do Item" value={novoItem.item_nome} onChange={e => setNovoItem({...novoItem, item_nome: e.target.value})} />
               <div className="grid grid-cols-2 gap-2">
-                <select className="bg-slate-100 p-4 rounded-2xl text-[12px] font-black appearance-none outline-none border-none" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>
+                <select className="bg-slate-100 p-4 rounded-2xl text-[12px] font-black" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>
                   {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
-                <select className="bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none border-none" value={novoItem.tamanho_especificacao} onChange={e => setNovoItem({...novoItem, tamanho_especificacao: e.target.value})}>
+                <select className="bg-slate-100 p-4 rounded-2xl text-base font-black" value={novoItem.tamanho_especificacao} onChange={e => setNovoItem({...novoItem, tamanho_especificacao: e.target.value})}>
                   {tamanhos.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               {ehFralda(novoItem.categoria_id, novoItem.item_nome) && (
                 <div className="grid grid-cols-2 gap-2 animate-in zoom-in-95">
-                  <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black outline-none border-2 border-indigo-200" placeholder="Qtd Pacotes" value={novoItem.qtd_pacotes} onChange={e => setNovoItem({...novoItem, qtd_pacotes: Number(e.target.value)})} />
-                  <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black outline-none border-2 border-indigo-200" placeholder="Unid/Pacote" value={novoItem.unidades_por_pacote} onChange={e => setNovoItem({...novoItem, unidades_por_pacote: Number(e.target.value)})} />
+                  <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black border-2 border-indigo-200" placeholder="Pacotes" value={novoItem.qtd_pacotes} onChange={e => setNovoItem({...novoItem, qtd_pacotes: Number(e.target.value)})} />
+                  <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black border-2 border-indigo-200" placeholder="Unid/Pac" value={novoItem.unidades_por_pacote} onChange={e => setNovoItem({...novoItem, unidades_por_pacote: Number(e.target.value)})} />
                 </div>
               )}
-              <input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none" placeholder={ehFralda(novoItem.categoria_id, novoItem.item_nome) ? "Preço do Pacote" : "Preço Total"} value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} />
-              <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200">
-                <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, true)} className="text-[10px] font-black" />
-              </div>
+              <input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black" placeholder="Preço" value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} />
+              <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, true)} className="text-[10px] font-black" />
               <button onClick={adicionarAoEnxoval} disabled={loading} className="w-full bg-indigo-700 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95">
-                {loading ? <Loader2 className="animate-spin mx-auto" /> : "ADICIONAR AO ENXOVAL"}
+                {loading ? <Loader2 className="animate-spin mx-auto" size={24} /> : "ADICIONAR AO ENXOVAL"}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* FORMULÁRIO DE EDIÇÃO */}
+      {editando && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center overflow-hidden">
+          <form onSubmit={salvarEdicao} className="bg-white w-full max-w-md rounded-t-[2.5rem] flex flex-col max-h-[90vh] shadow-2xl p-6 pb-12 animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <input className="text-base font-black text-indigo-700 uppercase bg-transparent outline-none w-full" value={editando.item_nome} onChange={e => setEditando({...editando, item_nome: e.target.value})} />
+              <button type="button" onClick={() => setEditando(null)}><X size={24}/></button>
+            </div>
+            <div className="space-y-4 overflow-y-auto">
+              <div className="flex flex-col items-center gap-2">
+                 <div className="h-24 w-24 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden border-2 border-dashed border-slate-300">
+                   {editando.foto_url ? <img src={editando.foto_url} className="h-full w-full object-cover" alt="Foto" /> : <Camera className="text-slate-300" />}
+                 </div>
+                 <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e)} className="text-[10px]" />
+              </div>
+              <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+                {['Pendente', 'Comprado', 'Presente'].map(s => (
+                  <button key={s} type="button" onClick={() => setEditando({...editando, status: s})} className={`flex-1 py-3 rounded-lg text-[10px] font-black ${editando.status === s ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500'}`}>{s.toUpperCase()}</button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <select className="bg-slate-100 p-4 rounded-2xl text-[12px] font-black" value={editando.categoria_id} onChange={e => setEditando({...editando, categoria_id: e.target.value})}>
+                  {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+                <select className="bg-slate-100 p-4 rounded-2xl text-base font-black" value={editando.tamanho_especificacao} onChange={e => setEditando({...editando, tamanho_especificacao: e.target.value})}>
+                  {tamanhos.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              {editando.status !== 'Presente' && (
+                <div className="grid grid-cols-2 gap-2">
+                   <input className="bg-slate-100 p-4 rounded-2xl text-base font-black" placeholder="Marca" value={editando.marca || ''} onChange={e => setEditando({...editando, marca: e.target.value})} />
+                   <input type="number" step="0.01" className="bg-slate-100 p-4 rounded-2xl text-base font-black" placeholder="Preço" value={editando.preco_pago || ''} onChange={e => setEditando({...editando, preco_pago: e.target.value})} />
+                </div>
+              )}
+              {editando.status === 'Presente' && (
+                <input className="w-full bg-pink-50 p-4 rounded-2xl text-base font-black text-pink-900 border-2 border-pink-200" placeholder="Quem presenteou?" value={editando.quem_presenteou || ''} onChange={e => setEditando({...editando, quem_presenteou: e.target.value})} />
+              )}
+              <div className="flex gap-4 pt-4">
+                 <button type="button" onClick={excluirItem} className="bg-red-50 text-red-600 p-5 rounded-2xl"><Trash2 size={24}/></button>
+                 <button type="submit" className="flex-1 bg-indigo-700 text-white font-black py-5 rounded-2xl shadow-xl">SALVAR ALTERAÇÕES</button>
+              </div>
+            </div>
+          </form>
         </div>
       )}
     </div>
