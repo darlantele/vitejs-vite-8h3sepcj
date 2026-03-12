@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import {
-  Mic, Camera, Search, Plus, Baby, ShoppingCart, X, Loader2, Heart, Trash2, Package
+  Camera, Search, Plus, Baby, ShoppingCart, X, Loader2, Heart, Trash2, Package
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -130,12 +130,20 @@ export default function App() {
     setLoading(false);
   }
 
+  async function excluirItem() {
+    if (!editando || !confirm(`Excluir "${editando.item_nome}"?`)) return;
+    setLoading(true);
+    const { error } = await supabase.from('enxoval').delete().eq('id', editando.id);
+    if (!error) { setEditando(null); fetchEnxoval(); }
+    setLoading(false);
+  }
+
   const totalGasto = itens.filter(i => i.status === 'Comprado').reduce((acc, i) => acc + Number(i.preco_pago || 0), 0);
 
   const itensFiltrados = itens.filter(i => {
     const statusMatch = abaAtiva === 'Pendentes' ? i.status === 'Pendente' : (i.status === 'Comprado' || i.status === 'Presente');
     const catMatch = categoriaFiltro === 'Todas' || i.categorias?.nome === categoriaFiltro;
-    return statusMatch && catMatch && i.item_nome.toLowerCase().includes(busca.toLowerCase());
+    return (statusMatch && catMatch && i.item_nome.toLowerCase().includes(busca.toLowerCase()));
   });
 
   return (
@@ -143,7 +151,7 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 w-full shadow-sm">
         <div className="flex justify-between items-center mb-3">
           <h1 onClick={() => window.location.reload()} className="text-[17px] font-black text-indigo-700 flex flex-col items-start leading-none tracking-tight">
-            <span>Jurandir Baby</span>
+            <span className="leading-none">Jurandir Baby</span>
             <div className="flex gap-1 mt-1 text-sm"><span>🍼</span><span>👶</span><span>🚗</span></div>
           </h1>
           <div className="flex items-center gap-2">
@@ -156,7 +164,6 @@ export default function App() {
              </div>
           </div>
         </div>
-
         <div className="grid grid-cols-12 gap-2">
           <div className="col-span-8 relative">
             <Search className="absolute left-3 top-3.5 h-3.5 w-3.5 text-slate-600" />
@@ -175,7 +182,7 @@ export default function App() {
         {itensFiltrados.map((item) => (
           <div key={item.id} onClick={() => setEditando(item)} className="bg-white rounded-2xl p-4 shadow-md border border-slate-200 flex flex-col gap-2 active:bg-slate-50">
             <div className="flex gap-4">
-              <div className="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden shadow-inner">
+              <div onClick={(e) => { e.stopPropagation(); item.foto_url && setFotoZoom(item.foto_url); }} className="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden shadow-inner">
                 {item.foto_url ? <img src={item.foto_url} className="h-full w-full object-cover" /> : <Camera size={24} className="text-slate-400" />}
               </div>
               <div className="flex-1 min-w-0 text-left">
@@ -186,7 +193,7 @@ export default function App() {
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold border border-slate-200">{item.tamanho_especificacao}</span>
                     )}
                   </div>
-                  {item.unidades_por_pacote > 1 && (
+                  {item.status === 'Comprado' && item.unidades_por_pacote > 1 && (
                     <span className="text-[9px] text-slate-400 flex items-center gap-0.5"><Package size={10}/> {item.qtd_pacotes * item.unidades_por_pacote} un</span>
                   )}
                 </div>
@@ -203,6 +210,12 @@ export default function App() {
           </div>
         ))}
       </main>
+
+      {fotoZoom && (
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6 animate-in fade-in" onClick={() => setFotoZoom(null)}>
+          <img src={fotoZoom} className="max-w-full max-h-[85vh] rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300" />
+        </div>
+      )}
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-10 py-4 pb-12 flex justify-around items-center z-30 shadow-lg">
         <ShoppingCart size={24} className="text-indigo-700" />
@@ -233,13 +246,13 @@ export default function App() {
                   <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black outline-none border-2 border-indigo-200" placeholder="Unid/Pacote" value={novoItem.unidades_por_pacote} onChange={e => setNovoItem({...novoItem, unidades_por_pacote: Number(e.target.value)})} />
                 </div>
               )}
-              <input type="number" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none" placeholder={ehFralda(novoItem.categoria_id) ? "Preço do Pacote" : "Preço Total"} value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} />
+              <input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none" placeholder={ehFralda(novoItem.categoria_id) ? "Preço do Pacote" : "Preço Total"} value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} />
               <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200">
                 <Camera size={24} className="text-slate-400" />
                 <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, true)} className="text-xs" />
               </div>
-              <button onClick={adicionarAoEnxoval} disabled={loading} className="w-full bg-indigo-700 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95 transition-all">
-                {loading ? <Loader2 className="animate-spin mx-auto" size={24} /> : "ADICIONAR AO ENXOVAL"}
+              <button onClick={adicionarAoEnxoval} disabled={loading} className="w-full bg-indigo-700 text-white font-black py-5 rounded-2xl text-base shadow-xl">
+                {loading ? <Loader2 className="animate-spin mx-auto" /> : "ADICIONAR AO ENXOVAL"}
               </button>
             </div>
           </div>
@@ -250,7 +263,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center overflow-hidden">
           <form onSubmit={salvarEdicao} className="bg-white w-full max-w-md rounded-t-[2.5rem] flex flex-col max-h-[90vh] shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div className="flex justify-between items-center p-6 border-b shrink-0">
-              <input className="text-base font-black text-indigo-700 uppercase tracking-widest bg-transparent outline-none w-full pr-4" value={editando.item_nome} onChange={e => setEditando({...editando, item_nome: e.target.value})} />
+              <input className="text-base font-black text-indigo-700 uppercase bg-transparent outline-none w-full pr-4" value={editando.item_nome} onChange={e => setEditando({...editando, item_nome: e.target.value})} />
               <button type="button" onClick={() => setEditando(null)} className="p-3 bg-slate-100 rounded-full active:bg-slate-200"><X size={24}/></button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-40 text-left">
@@ -262,6 +275,7 @@ export default function App() {
                     {uploading ? <Loader2 className="animate-spin text-white" size={32} /> : <Plus className="text-white" size={48} />}
                   </label>
                 </div>
+                {editando.foto_url && <button type="button" onClick={() => setEditando({...editando, foto_url: null})} className="text-red-600 font-black text-xs uppercase bg-red-50 px-4 py-2 rounded-full border border-red-100"><Trash2 size={12} className="inline mr-1"/> Excluir Foto</button>}
               </div>
               <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl shadow-inner border border-slate-200">
                 {['Pendente', 'Comprado', 'Presente'].map(s => (
