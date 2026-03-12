@@ -256,7 +256,7 @@ export default function App() {
                   {tamanhos.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              {ehFralda(novoItem.categoria_id) ? (
+              {Fralda(novoItem.categoria_id) ? (
                 <div className="grid grid-cols-2 gap-2 animate-in zoom-in-95">
                   <div className="space-y-1"><label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Pacotes</label><input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black border-2 border-indigo-200 w-full" value={novoItem.qtd_pacotes} onChange={e => setNovoItem({...novoItem, qtd_pacotes: Number(e.target.value)})} /></div>
                   <div className="space-y-1"><label className="text-[9px] font-black text-indigo-600 ml-2 uppercase">Unid/Pac</label><input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black border-2 border-indigo-200 w-full" value={novoItem.unidades_por_pacote} onChange={e => setNovoItem({...novoItem, unidades_por_pacote: Number(e.target.value)})} /></div>
