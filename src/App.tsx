@@ -51,12 +51,15 @@ export default function App() {
 
   async function fetchEnxoval() {
     setLoading(true);
-    const { data } = await supabase.from('enxoval').select(`*, categorias(nome)`).eq('interesse', 'Ativo').order('item_nome');
+    const { data } = await supabase
+      .from('enxoval')
+      .select(`*, categorias(nome)`)
+      .eq('interesse', 'Ativo')
+      .order('item_nome');
     if (data) setItens(data);
     setLoading(false);
   }
 
-  // Helper para verificar se a categoria selecionada é fralda
   const ehFralda = (catId: string) => {
     const nomeCat = listaCategorias.find(c => c.id === catId)?.nome.toLowerCase() || "";
     return nomeCat.includes("fralda");
@@ -79,15 +82,21 @@ export default function App() {
   async function adicionarAoEnxoval() {
     if (!novoItem.item_nome.trim()) return;
     setLoading(true);
-    
-    // Engenharia: Se for fralda, multiplica o preço pela qtd de pacotes
     const precoCalculado = ehFralda(novoItem.categoria_id) 
       ? Number(novoItem.preco_pago) * novoItem.qtd_pacotes 
       : Number(novoItem.preco_pago);
 
     const { error } = await supabase.from('enxoval').insert([{
-      ...novoItem,
+      item_nome: novoItem.item_nome,
+      categoria_id: novoItem.categoria_id,
+      tamanho_especificacao: novoItem.tamanho_especificacao,
+      marca: novoItem.marca,
       preco_pago: precoCalculado,
+      qtd_pacotes: novoItem.qtd_pacotes,
+      unidades_por_pacote: novoItem.unidades_por_pacote,
+      data_compra: novoItem.data_compra,
+      foto_url: novoItem.foto_url,
+      status: novoItem.status,
       interesse: 'Ativo'
     }]);
 
@@ -103,7 +112,20 @@ export default function App() {
     e.preventDefault();
     if (!editando) return;
     setLoading(true);
-    const { error } = await supabase.from('enxoval').update(editando).eq('id', editando.id);
+    const { error } = await supabase.from('enxoval').update({
+      item_nome: editando.item_nome,
+      tamanho_especificacao: editando.tamanho_especificacao,
+      marca: editando.status === 'Presente' ? null : editando.marca,
+      preco_pago: editando.status === 'Presente' ? 0 : editando.preco_pago,
+      qtd_pacotes: editando.qtd_pacotes,
+      unidades_por_pacote: editando.unidades_por_pacote,
+      local_compra: editando.status === 'Presente' ? null : editando.local_compra,
+      data_compra: editando.data_compra,
+      status: editando.status,
+      categoria_id: editando.categoria_id,
+      quem_presenteou: editando.quem_presenteou,
+      foto_url: editando.foto_url
+    }).eq('id', editando.id);
     if (!error) { setEditando(null); fetchEnxoval(); }
     setLoading(false);
   }
@@ -141,7 +163,7 @@ export default function App() {
             <input className="w-full rounded-xl bg-slate-100 py-3.5 pl-9 pr-10 text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" placeholder="Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
           </div>
           <div className="col-span-4 relative">
-            <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 px-0 rounded-xl appearance-none outline-none shadow-md text-center uppercase">
+            <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 px-0 indent-0 text-center appearance-none outline-none shadow-md h-full uppercase m-0 border-none">
               <option value="Todas">TODAS</option>
               {listaCategorias.map(cat => <option key={cat.id} value={cat.nome}>{cat.nome.toUpperCase()}</option>)}
             </select>
@@ -168,9 +190,13 @@ export default function App() {
                     <span className="text-[9px] text-slate-400 flex items-center gap-0.5"><Package size={10}/> {item.qtd_pacotes * item.unidades_por_pacote} un</span>
                   )}
                 </div>
-                <h3 className="font-black text-black text-[17px] truncate leading-tight">{item.item_nome}</h3>
+                <h3 className="font-black text-black text-[17px] truncate leading-tight tracking-tight">{item.item_nome}</h3>
                 <div className="mt-1">
-                   <span className="text-[14px] font-black text-indigo-900">R$ {Number(item.preco_pago || 0).toFixed(2)}</span>
+                  {item.status === 'Presente' ? (
+                    <span className="text-[12px] font-black text-pink-700 flex items-center gap-1 uppercase italic tracking-tighter"><Heart size={10} fill="currentColor"/> {item.quem_presenteou || 'Alguém especial'}</span>
+                  ) : (
+                    <span className="text-[14px] font-black text-indigo-900">R$ {Number(item.preco_pago || 0).toFixed(2)}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -184,7 +210,6 @@ export default function App() {
         <Baby size={24} className="text-slate-400" />
       </nav>
 
-      {/* MODAL NOVO ITEM */}
       {mostrarModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center overflow-hidden">
           <div className="bg-white w-full max-w-md rounded-t-[2.5rem] flex flex-col max-h-[90vh] shadow-2xl p-6 pb-12 animate-in slide-in-from-bottom duration-300">
@@ -192,38 +217,95 @@ export default function App() {
               <h2 className="text-base font-black text-slate-900 uppercase">Novo Item</h2>
               <button onClick={() => setMostrarModal(false)} className="p-2 bg-slate-100 rounded-full"><X size={24}/></button>
             </div>
-            
             <div className="space-y-4 overflow-y-auto">
               <input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-2 border-transparent focus:border-indigo-500" placeholder="Nome do Item" value={novoItem.item_nome} onChange={e => setNovoItem({...novoItem, item_nome: e.target.value})} />
-              
               <div className="grid grid-cols-2 gap-2">
-                <select className="bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>
+                <select className="bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none border-none" value={novoItem.categoria_id} onChange={e => setNovoItem({...novoItem, categoria_id: e.target.value})}>
                   {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
-                <select className="bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none" value={novoItem.tamanho_especificacao} onChange={e => setNovoItem({...novoItem, tamanho_especificacao: e.target.value})}>
+                <select className="bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none border-none" value={novoItem.tamanho_especificacao} onChange={e => setNovoItem({...novoItem, tamanho_especificacao: e.target.value})}>
                   {tamanhos.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-
               {ehFralda(novoItem.categoria_id) && (
                 <div className="grid grid-cols-2 gap-2 animate-in zoom-in-95">
                   <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black outline-none border-2 border-indigo-200" placeholder="Qtd Pacotes" value={novoItem.qtd_pacotes} onChange={e => setNovoItem({...novoItem, qtd_pacotes: Number(e.target.value)})} />
                   <input type="number" className="bg-indigo-50 p-4 rounded-2xl text-base font-black outline-none border-2 border-indigo-200" placeholder="Unid/Pacote" value={novoItem.unidades_por_pacote} onChange={e => setNovoItem({...novoItem, unidades_por_pacote: Number(e.target.value)})} />
                 </div>
               )}
-
               <input type="number" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none" placeholder={ehFralda(novoItem.categoria_id) ? "Preço do Pacote" : "Preço Total"} value={novoItem.preco_pago} onChange={e => setNovoItem({...novoItem, preco_pago: e.target.value})} />
-              
               <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200">
                 <Camera size={24} className="text-slate-400" />
                 <input type="file" accept="image/*" onChange={(e) => handleUploadFoto(e, true)} className="text-xs" />
               </div>
-
-              <button onClick={adicionarAoEnxoval} disabled={loading} className="w-full bg-indigo-700 text-white font-black py-5 rounded-2xl text-base shadow-xl">
-                {loading ? <Loader2 className="animate-spin mx-auto" /> : "ADICIONAR AO ENXOVAL"}
+              <button onClick={adicionarAoEnxoval} disabled={loading} className="w-full bg-indigo-700 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95 transition-all">
+                {loading ? <Loader2 className="animate-spin mx-auto" size={24} /> : "ADICIONAR AO ENXOVAL"}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {editando && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center overflow-hidden">
+          <form onSubmit={salvarEdicao} className="bg-white w-full max-w-md rounded-t-[2.5rem] flex flex-col max-h-[90vh] shadow-2xl animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-between items-center p-6 border-b shrink-0">
+              <input className="text-base font-black text-indigo-700 uppercase tracking-widest bg-transparent outline-none w-full pr-4" value={editando.item_nome} onChange={e => setEditando({...editando, item_nome: e.target.value})} />
+              <button type="button" onClick={() => setEditando(null)} className="p-3 bg-slate-100 rounded-full active:bg-slate-200"><X size={24}/></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-40 text-left">
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative h-36 w-36 rounded-[2.5rem] bg-slate-50 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden shadow-inner group">
+                  {editando.foto_url ? <img src={editando.foto_url} className="h-full w-full object-cover" /> : <Camera size={36} className="text-slate-300" />}
+                  <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/20 opacity-0 active:opacity-100 transition-opacity">
+                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleUploadFoto} />
+                    {uploading ? <Loader2 className="animate-spin text-white" size={32} /> : <Plus className="text-white" size={48} />}
+                  </label>
+                </div>
+              </div>
+              <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl shadow-inner border border-slate-200">
+                {['Pendente', 'Comprado', 'Presente'].map(s => (
+                  <button key={s} type="button" onClick={() => setEditando({...editando, status: s as any})} className={`flex-1 py-4 rounded-xl text-[10px] font-black transition-all ${editando.status === s ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500'}`}>{s.toUpperCase()}</button>
+                ))}
+              </div>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Categoria</label>
+                    <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none border-none shadow-sm" value={editando.categoria_id} onChange={e => setEditando({...editando, categoria_id: e.target.value})}>
+                      {listaCategorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Tamanho / Idade</label>
+                    <select className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black appearance-none outline-none border-none shadow-sm" value={editando.tamanho_especificacao} onChange={e => setEditando({...editando, tamanho_especificacao: e.target.value})}>
+                      {tamanhos.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {ehFralda(editando.categoria_id) && (
+                  <div className="grid grid-cols-2 gap-4 text-left animate-in zoom-in-95">
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-indigo-600 uppercase ml-1">Qtd Pacotes</label><input type="number" className="w-full bg-indigo-50 p-4 rounded-2xl text-base font-black outline-none border-2 border-indigo-100" value={editando.qtd_pacotes || 1} onChange={e => setEditando({...editando, qtd_pacotes: Number(e.target.value)})} /></div>
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-indigo-600 uppercase ml-1">Fraldas/Pacote</label><input type="number" className="w-full bg-indigo-50 p-4 rounded-2xl text-base font-black outline-none border-2 border-indigo-100" value={editando.unidades_por_pacote || 1} onChange={e => setEditando({...editando, unidades_por_pacote: Number(e.target.value)})} /></div>
+                  </div>
+                )}
+                {editando.status !== 'Presente' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Marca</label><input className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black outline-none border-none shadow-sm" value={editando.marca || ''} onChange={e => setEditando({...editando, marca: e.target.value})} /></div>
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase ml-1">Preço Total</label><input type="number" step="0.01" className="w-full bg-slate-100 p-4 rounded-2xl text-base font-black text-indigo-900 outline-none border-none shadow-sm" value={editando.preco_pago || ''} onChange={e => setEditando({...editando, preco_pago: e.target.value})} /></div>
+                  </div>
+                )}
+                {editando.status === 'Presente' && (
+                  <div className="space-y-1.5 text-left animate-in zoom-in-95 duration-200">
+                    <label className="text-[10px] font-black text-pink-700 uppercase ml-1 tracking-widest">Quem presenteou o Juras?</label>
+                    <input className="w-full bg-pink-50 p-5 rounded-2xl text-base font-black text-pink-900 outline-none border-2 border-pink-200 shadow-sm" placeholder="Ex: Titia Amanda" value={editando.quem_presenteou || ''} onChange={e => setEditando({...editando, quem_presenteou: e.target.value})} />
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="p-6 bg-white border-t shrink-0 pb-12 flex gap-4">
+              <button type="button" onClick={excluirItem} className="bg-red-50 text-red-600 p-5 rounded-2xl active:bg-red-100 border border-red-100"><Trash2 size={24}/></button>
+              <button type="submit" disabled={loading} className="flex-1 bg-indigo-700 text-white font-black py-5 rounded-2xl text-base shadow-xl active:scale-95 transition-all uppercase tracking-widest flex items-center justify-center gap-2">{loading ? <Loader2 className="animate-spin" size={24} /> : "SALVAR ALTERAÇÕES"}</button>
+            </div>
+          </form>
         </div>
       )}
     </div>
