@@ -180,38 +180,70 @@ export default function App() {
         )}
       </header>
 
-     // <main className="flex-1 p-3 space-y-3 pb-32"> TROCAR ESSA LINHA PELA LINHA IMEDIATAMENTE ABAIXO
        <main className="flex-1 p-3 grid grid-cols-2 gap-3 pb-32">
         {itensFiltrados.map((item) => (
-          <div key={item.id} onClick={() => setEditando(item)} className="bg-white rounded-2xl p-4 shadow-md border border-slate-200 flex flex-col gap-2">
-            <div className="flex gap-4 text-left">
-              <div onClick={(e) => { e.stopPropagation(); item.foto_url && setFotoZoom(item.foto_url); }} className="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-200 overflow-hidden shrink-0 cursor-zoom-in">
-                {item.foto_url ? <img src={item.foto_url} className="h-full w-full object-cover" /> : <Camera size={24} className="text-slate-400" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start mb-1">
-                  <div className="flex gap-1 items-center">
-                    <span className="text-[10px] font-black text-indigo-700 uppercase">{item.categorias?.nome}</span>
-                    {item.tamanho_especificacao !== 'N/A' && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white text-indigo-700 font-bold border-2 border-indigo-600">{item.tamanho_especificacao}</span>
-                    )}
-                  </div>
-                  <span className="text-[9px] text-slate-400 flex items-center gap-0.5 font-bold bg-slate-50 px-2 py-1 rounded-md">
-                    <Package size={10}/> {item.qtd_pacotes * item.unidades_por_pacote} un
-                  </span>
-                </div>
-                <h3 className="font-black text-black text-[17px] truncate leading-tight">{item.item_nome}</h3>
-                <div className="mt-1">
-                  {item.status === 'Presente' ? (
-                    <span className="text-[12px] font-black text-pink-700 italic"><Heart size={10} fill="currentColor" className="inline mr-1"/> {item.quem_presenteou || 'Presente'}</span>
-                  ) : (
-                    <span className="text-[14px] font-black text-indigo-900">R$ {Number(item.preco_pago || 0).toFixed(2)}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+         <div
+  key={item.id}
+  onClick={() => setEditando(item)}
+  className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden active:scale-[0.97] transition"
+>
+
+  <div
+    onClick={(e) => {
+      e.stopPropagation();
+      item.foto_url && setFotoZoom(item.foto_url);
+    }}
+    className="w-full h-28 bg-slate-100 flex items-center justify-center overflow-hidden"
+  >
+    {item.foto_url ? (
+      <img
+        src={item.foto_url}
+        className="w-full h-full object-cover"
+      />
+    ) : (
+      <Camera size={24} className="text-slate-400" />
+    )}
+  </div>
+
+  <div className="p-2 space-y-1">
+
+    <div className="flex justify-between items-center">
+
+      <span className="text-[8px] font-black text-indigo-700 uppercase truncate">
+        {item.categorias?.nome}
+      </span>
+
+      {item.tamanho_especificacao !== 'N/A' && (
+        <span className="text-[8px] px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold">
+          {item.tamanho_especificacao}
+        </span>
+      )}
+
+    </div>
+
+    <h3 className="font-black text-[12px] leading-tight line-clamp-2">
+      {item.item_nome}
+    </h3>
+
+    {item.status === 'Presente' ? (
+      <span className="text-[10px] font-bold text-pink-700">
+        🎁 {item.quem_presenteou || 'Presente'}
+      </span>
+    ) : (
+      <span className="text-[13px] font-black text-indigo-900">
+        R$ {Number(item.preco_pago || 0).toFixed(2)}
+      </span>
+    )}
+
+    <div className="text-[9px] text-slate-500 font-bold">
+      {item.qtd_pacotes * item.unidades_por_pacote} un
+    </div>
+
+  </div>
+
+</div>
+
+))}
       </main>
 
       {fotoZoom && (
