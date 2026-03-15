@@ -153,7 +153,7 @@ const resumoFraldas = tamanhos
     tamanho: t,
     qtd: itens
       .filter(i =>
-        i.tipo_fralda !== 'Não se aplica' &&
+        i.tipo_fralda && i.tipo_fralda !== 'Não se aplica' &&
         i.tamanho_especificacao === t &&
         (i.status === 'Comprado' || i.status === 'Presente')
       )
