@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import {
-  Camera, Search, Plus, Baby, ShoppingCart, X, Loader2, Trash2, BarChart3
+  Camera, Search, Plus, Baby, ShoppingCart, X, Loader2, Trash2, 
 } from 'lucide-react';
 
 const supabase = createClient(
