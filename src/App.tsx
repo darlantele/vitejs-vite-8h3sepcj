@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import {
@@ -17,6 +18,7 @@ export default function App() {
   const [categoriaFiltro, setCategoriaFiltro] = useState('Todas');
   const [mostrarModal, setMostrarModal] = useState(false);
   const [mostrarResumo, setMostrarResumo] = useState(false);
+  const [tipoResumo, setTipoResumo] = useState<'geral' | 'fraldas'>('geral');
   const [editando, setEditando] = useState<any>(null);
   const [fotoZoom, setFotoZoom] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -143,6 +145,46 @@ export default function App() {
       .reduce((acc, curr) => acc + (Number(curr.unidades_por_pacote || 1) * Number(curr.qtd_pacotes || 1)), 0)
   })).filter(r => r.qtd > 0);
 
+
+// 👶 NOVO RESUMO APENAS PARA FRALDAS
+const resumoFraldas = tamanhos
+  .filter(t => t !== 'N/A')
+  .map(t => ({
+    tamanho: t,
+    qtd: itens
+      .filter(i =>
+        i.tipo_fralda !== 'Não se aplica' &&
+        i.tamanho_especificacao === t &&
+        (i.status === 'Comprado' || i.status === 'Presente')
+      )
+      .reduce(
+        (acc, curr) =>
+          acc +
+          Number(curr.qtd_pacotes || 1) *
+          Number(curr.unidades_por_pacote || 1),
+        0
+      )
+  }))
+  .filter(r => r.qtd > 0);
+
+// ⭐ SELETOR DO RESUMO
+const dadosResumo = tipoResumo === 'fraldas'
+  ? resumoFraldas
+  : resumoTamanhos;  
+
+  if (!itens.length) {
+  return (
+    <main className="p-4 grid grid-cols-2 gap-3">
+      {[1,2,3,4,5,6].map((i) => (
+        <div
+          key={i}
+          className="bg-slate-200 animate-pulse rounded-2xl h-28"
+        />
+      ))}
+    </main>
+  );
+}
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-900 w-full flex flex-col overflow-x-hidden">
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 w-full shadow-sm">
@@ -174,18 +216,22 @@ export default function App() {
           </div>
         </div>
         {abaAtiva === 'Comprados' && (
-          <button onClick={() => setMostrarResumo(true)} className="mt-2 w-full bg-slate-100 text-[10px] font-black py-2 rounded-lg text-indigo-700 flex items-center justify-center gap-2 border border-slate-200">
-            <BarChart3 size={12}/> VER RESUMO POR TAMANHO
+          <button onClick={() => setMostrarResumo(true)} className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold"> 📊 RESUMO POR TAMANHO
           </button>
         )}
       </header>
 
        <main className="flex-1 p-3 grid grid-cols-2 gap-3 pb-32">
         {itensFiltrados.map((item) => (
-         <div
-  key={item.id}
-  onClick={() => setEditando(item)}
-  className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden active:scale-[0.97] transition"
+         <motion.div
+    key={item.id}
+    initial={{ opacity: 0, y: 15 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.25 }}
+    whileTap={{ scale: 0.96 }}
+    whileHover={{ scale: 1.02 }}
+    onClick={() => setEditando(item)}
+    className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden active:scale-[0.97] transition"
 >
 
   <div
@@ -241,7 +287,7 @@ export default function App() {
 
   </div>
 
-</div>
+</motion.div>
 
 ))}
       </main>
@@ -259,8 +305,35 @@ export default function App() {
               <h2 className="text-sm font-black text-indigo-700 uppercase">Total Acumulado</h2>
               <button onClick={() => setMostrarResumo(false)}><X size={20}/></button>
             </div>
+
+            //{/* SELETOR DE RESUMO */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setTipoResumo('geral')}
+                className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    tipoResumo === 'geral'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-200 text-slate-700'
+              }`}
+            >
+              Geral
+            </button>
+
+           <button
+            onClick={() => setTipoResumo('fraldas')}
+            className={`px-3 py-1 rounded-full text-xs font-bold ${
+              tipoResumo === 'fraldas'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-200 text-slate-700'
+          }`}
+        >
+          Fraldas
+        </button>
+      </div>
+
+            
             <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-              {resumoTamanhos.map(r => (
+              {dadosResumo.map(r => (
                 <div key={r.tamanho} className="bg-slate-50 p-3 rounded-xl border flex justify-between items-center">
                   <span className="font-black text-slate-600">{r.tamanho}</span>
                   <span className="bg-indigo-700 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold">{r.qtd} UN</span>
@@ -277,7 +350,7 @@ export default function App() {
         <Baby size={24} className="text-slate-400" />
       </nav>
 
-      {/* MODAL ADICIONAR - CAMPOS DE FRALDA RESTAURADOS */}
+      //{/* MODAL ADICIONAR - CAMPOS DE FRALDA RESTAURADOS */}
       {mostrarModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center">
           <div className="bg-white w-full max-w-md rounded-t-[2.5rem] p-6 pb-12 animate-in slide-in-from-bottom duration-300 shadow-2xl text-left">
@@ -296,7 +369,7 @@ export default function App() {
                 </select>
               </div>
               
-              {/* LÓGICA DE CAMPOS DINÂMICOS PARA FRALDA */}
+              //{/* LÓGICA DE CAMPOS DINÂMICOS PARA FRALDA */}
               {ehFralda(novoItem.categoria_id) ? (
                 <div className="grid grid-cols-2 gap-2 animate-in zoom-in-95">
                   <div className="space-y-1">
@@ -323,7 +396,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL EDIÇÃO - CAMPOS DE FRALDA RESTAURADOS */}
+      //{/* MODAL EDIÇÃO - CAMPOS DE FRALDA RESTAURADOS */}
       {editando && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center">
           <form onSubmit={salvarEdicao} className="bg-white w-full max-w-md rounded-t-[2.5rem] p-6 pb-12 animate-in slide-in-from-bottom duration-300 shadow-2xl text-left">
