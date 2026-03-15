@@ -306,7 +306,7 @@ const dadosResumo = tipoResumo === 'fraldas'
               <button onClick={() => setMostrarResumo(false)}><X size={20}/></button>
             </div>
 
-            //{/* SELETOR DE RESUMO */}
+            {/* SELETOR DE RESUMO */}
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => setTipoResumo('geral')}
@@ -350,7 +350,7 @@ const dadosResumo = tipoResumo === 'fraldas'
         <Baby size={24} className="text-slate-400" />
       </nav>
 
-      //{/* MODAL ADICIONAR - CAMPOS DE FRALDA RESTAURADOS */}
+      {/* MODAL ADICIONAR - CAMPOS DE FRALDA RESTAURADOS */}
       {mostrarModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center">
           <div className="bg-white w-full max-w-md rounded-t-[2.5rem] p-6 pb-12 animate-in slide-in-from-bottom duration-300 shadow-2xl text-left">
@@ -369,7 +369,7 @@ const dadosResumo = tipoResumo === 'fraldas'
                 </select>
               </div>
               
-              //{/* LÓGICA DE CAMPOS DINÂMICOS PARA FRALDA */}
+              {/* LÓGICA DE CAMPOS DINÂMICOS PARA FRALDA */}
               {ehFralda(novoItem.categoria_id) ? (
                 <div className="grid grid-cols-2 gap-2 animate-in zoom-in-95">
                   <div className="space-y-1">
@@ -396,7 +396,7 @@ const dadosResumo = tipoResumo === 'fraldas'
         </div>
       )}
 
-      //{/* MODAL EDIÇÃO - CAMPOS DE FRALDA RESTAURADOS */}
+      {/* MODAL EDIÇÃO - CAMPOS DE FRALDA RESTAURADOS */}
       {editando && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end justify-center">
           <form onSubmit={salvarEdicao} className="bg-white w-full max-w-md rounded-t-[2.5rem] p-6 pb-12 animate-in slide-in-from-bottom duration-300 shadow-2xl text-left">
