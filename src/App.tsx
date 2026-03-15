@@ -180,7 +180,8 @@ export default function App() {
         )}
       </header>
 
-      <main className="flex-1 p-3 space-y-3 pb-32">
+     // <main className="flex-1 p-3 space-y-3 pb-32"> TROCAR ESSA LINHA PELA LINHA IMEDIATAMENTE ABAIXO
+       <main className="flex-1 p-3 grid grid-cols-2 gap-3 pb-32">
         {itensFiltrados.map((item) => (
           <div key={item.id} onClick={() => setEditando(item)} className="bg-white rounded-2xl p-4 shadow-md border border-slate-200 flex flex-col gap-2">
             <div className="flex gap-4 text-left">
