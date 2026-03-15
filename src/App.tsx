@@ -210,7 +210,7 @@ const dadosResumo = tipoResumo === 'fraldas'
           </div>
           <div className="col-span-4 relative">
             <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} className="w-full bg-indigo-700 text-white text-[10px] font-black py-4 rounded-xl uppercase appearance-none text-center outline-none">
-              <option value="Todas">TODAS</option>
+              <option value="Todas">CATEGORIAS</option>
               {listaCategorias.map(cat => <option key={cat.id} value={cat.nome}>{cat.nome.toUpperCase()}</option>)}
             </select>
           </div>
